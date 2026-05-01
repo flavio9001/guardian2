@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#070D1A" />
+  <title>GuardianOPS Pro</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22GuardianOPS%20Pro%22,%22short_name%22:%22GuardianOPS%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22%23070D1A%22,%22theme_color%22:%22%23C8973A%22}" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    body{background:#070D1A;font-family:'Barlow',sans-serif;color:#EDF1FF;height:100vh;overflow:hidden;}
+    input,select,textarea{background:#0D1B33;border:1px solid rgba(200,151,58,0.3);color:#fff;padding:12px;border-radius:8px;width:100%;margin-bottom:10px;}
+    .stat-card{background:#111E38;border:1px solid rgba(200,151,58,0.18);border-radius:12px;padding:15px;cursor:pointer;transition:0.2s;}
+    .stat-card:active{transform:scale(0.95);background:#162544;}
+    .nav-btn{flex:1;background:none;border:none;color:#7A93C0;padding:10px;font-size:10px;text-transform:uppercase;font-weight:bold;}
+    .active-nav{color:#C8973A;border-top:2px solid #C8973A;}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- SISTEMA DE PERSISTÊNCIA (LOCALSTORAGE) ---
+    const getSaved = (key, initial) => {
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : initial;
+    };
+
+    function App() {
+      const [screen, setScreen] = useState("login");
+      const [user, setUser] = useState(null);
+      const [tab, setTab] = useState("home");
+      const [adminTab, setAdminTab] = useState("colaboradores");
+
+      // Estados Persistentes
+      const [users, setUsers] = useState(() => getSaved('gops_users', []));
+      const [vips, setVips] = useState(() => getSaved('gops_vips', []));
+      const [cars, setCars] = useState(() => getSaved('gops_cars', []));
+      const [events, setEvents] = useState(() => getSaved('gops_events', []));
+      const [messages, setMessages] = useState(() => getSaved('gops_messages', { Geral: [], Alpha: [], Bravo: [], Charlie: [] }));
+
+      // Efeito para salvar sempre que houver alteração
+      useEffect(() => {
+        localStorage.setItem('gops_users', JSON.stringify(users));
+        localStorage.setItem('gops_vips', JSON.stringify(vips));
+        localStorage.setItem('gops_cars', JSON.stringify(cars));
+        localStorage.setItem('gops_events', JSON.stringify(events));
+        localStorage.setItem('gops_messages', JSON.stringify(messages));
+      }, [users, vips, cars, events, messages]);
+
+      // --- COMPONENTES DE TELA ---
+      const HomeScreen = () => (
+        <div style={{padding:20}}>
+          <h2>Olá, {user.nome.split(" ")[1]}</h2>
+          <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:20}}>
+            <div className="stat-card" onClick={() => setTab("agenda")}>
+              <div style={{fontSize:24}}>📋</div>
+              <div style={{fontSize:20, fontWeight:900, color:'#C8973A'}}>{events.length}</div>
+              <div style={{fontSize:12}}>Eventos de Hoje</div>
+            </div>
+            <div className="stat-card" onClick={() => {setTab("admin"); setAdminTab("colaboradores");}}>
+              <div style={{fontSize:24}}>👥</div>
+              <div style={{fontSize:20, fontWeight:900, color:'#C8973A'}}>{users.length}</div>
+              <div style={{fontSize:12}}>Agentes Ativos</div>
+            </div>
+            <div className="stat-card" onClick={() => {setTab("admin"); setAdminTab("viaturas");}}>
+              <div style={{fontSize:24}}>🚗</div>
+              <div style={{fontSize:20, fontWeight:900, color:'#C8973A'}}>{cars.length}</div>
+              <div style={{fontSize:12}}>Viaturas Disp.</div>
+            </div>
+            <div className="stat-card" onClick={() => {setTab("admin"); setAdminTab("vips");}}>
+              <div style={{fontSize:24}}>🛡️</div>
+              <div style={{fontSize:20, fontWeight:900, color:'#C8973A'}}>{vips.length}</div>
+              <div style={{fontSize:12}}>VIPs Protegidos</div>
+            </div>
+          </div>
+        </div>
+      );
+
+      // Renderização condicional básica para exemplo
+      if (screen === "login") return (
+        <div style={{padding:40, textAlign:'center', marginTop:100}}>
+          <h1 style={{color:'#C8973A', marginBottom:30}}>GUARDIAN OPS</h1>
+          <button onClick={() => {setUser({nome:"Cel. Ricardo", isGestor:true}); setScreen("app");}} 
+            style={{background:'#C8973A', padding:15, border:'none', borderRadius:8, width:'100%', fontWeight:'bold'}}>
+            ENTRAR (MODO GESTOR)
+          </button>
+        </div>
+      );
+
+      return (
+        <div style={{height:'100vh', display:'flex', flexDirection:'column'}}>
+          <header style={{padding:15, background:'#0D1B33', borderBottom:'1px solid rgba(200,151,58,0.3)', textAlign:'center'}}>
+            <span style={{fontWeight:900, letterSpacing:2, color:'#C8973A'}}>GUARDIAN OPS PRO</span>
+          </header>
+
+          <main style={{flex:1, overflowY:'auto'}}>
+            {tab === "home" && <HomeScreen />}
+            {tab === "agenda" && <div style={{padding:20}}><h3>Sessão de Agenda e Eventos</h3></div>}
+            {tab === "admin" && <div style={{padding:20}}><h3>Sessão Admin: {adminTab}</h3></div>}
+            {tab === "chat" && <div style={{padding:20}}><h3>Sessão de Mensagens</h3></div>}
+          </main>
+
+          <nav style={{display:'flex', background:'#0D1B33', borderTop:'1px solid rgba(200,151,58,0.3)'}}>
+            <button className={`nav-btn ${tab==="home"?"active-nav":""}`} onClick={()=>setTab("home")}>Início</button>
+            <button className={`nav-btn ${tab==="agenda"?"active-nav":""}`} onClick={()=>setTab("agenda")}>Agenda</button>
+            <button className={`nav-btn ${tab==="chat"?"active-nav":""}`} onClick={()=>setTab("chat")}>Chat</button>
+            <button className={`nav-btn ${tab==="admin"?"active-nav":""}`} onClick={()=>setTab("admin")}>Admin</button>
+          </nav>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
