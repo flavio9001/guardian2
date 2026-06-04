@@ -1023,41 +1023,104 @@ loadPublicPeople().catch((error) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => { const userLabel = document.querySelector('.top-actions #currentuserlabel'); if (userLabel) { userLabel.style.backgroundColor = '#28a745'; userLabel.style.color = '#ffffff'; userLabel.style.padding = '5px 10px'; userLabel.style.borderRadius = '4px'; } const userPills = document.querySelectorAll('.user-pill'); userPills.forEach(pill => { pill.style.cursor = 'pointer'; pill.addEventListener('click', () => { window.location.href = '/funcionarios'; }); }); });
-
-// Lógica para tornar as pills clicáveis e redirecionar
+// Lógica para navegação dinâmica baseada no tipo de pill
 document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('user-pill')) {
-        // Redireciona para a página de funcionários
-        // Ajuste 'funcionarios' para o ID ou rota exata da sua tela
-        showPage('employees'); 
-        console.log('Navegando para a tela de funcionários via pill');
+    const pill = e.target.closest('.user-pill');
+    if (!pill) return;
+
+    const text = pill.innerText.toLowerCase();
+    const parentSection = pill.closest('.card')?.querySelector('h3')?.innerText.toLowerCase() || '';
+
+    // 1. Se for um nome de funcionário ou estiver na seção de Equipe
+    if (parentSection.includes('equipe') || parentSection.includes('funcionário')) {
+        showPage('employees');
+        console.log('Navegando para: Funcionários');
+    } 
+    // 2. Se for um Grupo (Alpha, Bravo, etc)
+    else if (text.includes('alpha') || text.includes('bravo') || text.includes('grupo')) {
+        showPage('groups'); // Ajuste para o ID da sua tela de grupos
+        console.log('Navegando para: Grupos');
+    }
+    // 3. Se for um Ativo ou Status Operacional
+    else if (parentSection.includes('ativos') || parentSection.includes('operacional')) {
+        showPage('operations'); // Ajuste para o ID da sua tela operacional
+        console.log('Navegando para: Operações/Ativos');
+    }
+});
+function exportEmployeeSummary(employeeData) {
+    const exportArea = document.createElement('div');
+    exportArea.className = 'summary-export-landscape';
+    
+    exportArea.innerHTML = `
+        <img src="${employeeData.photo || 'default-avatar.png'}" class="export-photo-side">
+        <div class="export-info-side">
+            <p><b>Nome Completo</b> ${employeeData.name}</p>
+            <p><b>Função / Cargo</b> ${employeeData.role}</p>
+            <p><b>Grupo Operacional</b> ${employeeData.group}</p>
+            <p><b>Endereço Residencial</b> ${employeeData.address || 'Não informado'}</p>
+            <p><b>Status do Cadastro</b> ${employeeData.status}</p>
+        </div>
+    `;
+
+    document.body.appendChild(exportArea);
+    
+// Função para carregar os dados e preparar a exportação
+function handleExportClick(employeeId) {
+    // Busca os dados do funcionário (que agora incluem o 'address')
+    const employee = allEmployees.find(e => e.id === employeeId);
+    
+    if (employee) {
+        // Chama a função de exportação 17x12cm que criamos
+        exportEmployeeSummary(employee);
+    }
+}
+
+// Navegação inteligente das Pills
+document.addEventListener('click', function(e) {
+    const pill = e.target.closest('.user-pill');
+    if (!pill) return;
+
+    // Identifica o contexto pelo título do card pai
+    const parentCard = pill.closest('.card');
+    const sectionTitle = parentCard ? parentCard.querySelector('h3').innerText.toLowerCase() : '';
+
+    if (sectionTitle.includes('equipe') || sectionTitle.includes('funcionários')) {
+        showPage('employees'); // ID da tela de funcionários
+    } else if (sectionTitle.includes('grupos')) {
+        showPage('groups');    // ID da tela de grupos
+    } else {
+        showPage('operations'); // ID da tela de operações
     }
 });
 
 function exportEmployeeSummary(employeeData) {
-    // Cria o elemento temporário
     const exportArea = document.createElement('div');
-    exportArea.className = 'summary-export-frame';
+    exportArea.className = 'summary-export-landscape';
     
     exportArea.innerHTML = `
-        <img src="${employeeData.photo || 'default-avatar.png'}" class="summary-export-photo">
-        <div class="summary-export-info">
-            <p><b>NOME:</b> ${employeeData.name}</p>
-            <p><b>CARGO:</b> ${employeeData.role}</p>
-            <p><b>GRUPO:</b> ${employeeData.group}</p>
-            <p><b>STATUS:</b> ${employeeData.status}</p>
+        <img src="${employeeData.photo || 'default-avatar.png'}" class="export-photo-side">
+        <div class="export-info-side">
+            <p><b>Nome Completo</b> ${employeeData.name}</p>
+            <p><b>Função / Cargo</b> ${employeeData.role}</p>
+            <p><b>Grupo Operacional</b> ${employeeData.group}</p>
+            <p><b>Endereço Residencial</b> ${employeeData.address || 'Não informado'}</p>
+            <p><b>Status do Cadastro</b> ${employeeData.status}</p>
         </div>
     `;
 
-    // Adiciona ao corpo, exporta e remove
     document.body.appendChild(exportArea);
     
-    // Supondo o uso de html2canvas para gerar a imagem/PDF
-    html2canvas(exportArea, { width: 226, height: 378 }).then(canvas => {
+    html2canvas(exportArea, { 
+        scale: 3, 
+        useCORS: true,
+        width: 642, // 17cm
+        height: 453  // 12cm
+    }).then(canvas => {
         const link = document.createElement('a');
-        link.download = `resumo_${employeeData.name}.png`;
-        link.href = canvas.toDataURL();
+        link.download = `RESUMO_SOL_${employeeData.name.replace(/\s+/g, '_')}.png`;
+        link.href = canvas.toDataURL('image/png');
         link.click();
         document.body.removeChild(exportArea);
     });
+}
 }
