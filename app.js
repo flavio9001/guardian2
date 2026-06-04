@@ -1023,3 +1023,13 @@ loadPublicPeople().catch((error) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => { const userLabel = document.querySelector('.top-actions #currentuserlabel'); if (userLabel) { userLabel.style.backgroundColor = '#28a745'; userLabel.style.color = '#ffffff'; userLabel.style.padding = '5px 10px'; userLabel.style.borderRadius = '4px'; } const userPills = document.querySelectorAll('.user-pill'); userPills.forEach(pill => { pill.style.cursor = 'pointer'; pill.addEventListener('click', () => { window.location.href = '/funcionarios'; }); }); });
+
+// Lógica para tornar as pills clicáveis e redirecionar
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('user-pill')) {
+        // Redireciona para a página de funcionários
+        // Ajuste 'funcionarios' para o ID ou rota exata da sua tela
+        showPage('employees'); 
+        console.log('Navegando para a tela de funcionários via pill');
+    }
+});
