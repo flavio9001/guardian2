@@ -1,0 +1,17 @@
+{
+  "name": "SOL Equipes",
+  "short_name": "SOL",
+  "description": "Cadastro, organograma, chat e escala de funcionários.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f7faf8",
+  "theme_color": "#062b51",
+  "icons": [
+    {
+      "src": "sol-favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
