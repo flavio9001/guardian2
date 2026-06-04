@@ -1033,3 +1033,31 @@ document.addEventListener('click', function(e) {
         console.log('Navegando para a tela de funcionários via pill');
     }
 });
+
+function exportEmployeeSummary(employeeData) {
+    // Cria o elemento temporário
+    const exportArea = document.createElement('div');
+    exportArea.className = 'summary-export-frame';
+    
+    exportArea.innerHTML = `
+        <img src="${employeeData.photo || 'default-avatar.png'}" class="summary-export-photo">
+        <div class="summary-export-info">
+            <p><b>NOME:</b> ${employeeData.name}</p>
+            <p><b>CARGO:</b> ${employeeData.role}</p>
+            <p><b>GRUPO:</b> ${employeeData.group}</p>
+            <p><b>STATUS:</b> ${employeeData.status}</p>
+        </div>
+    `;
+
+    // Adiciona ao corpo, exporta e remove
+    document.body.appendChild(exportArea);
+    
+    // Supondo o uso de html2canvas para gerar a imagem/PDF
+    html2canvas(exportArea, { width: 226, height: 378 }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `resumo_${employeeData.name}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        document.body.removeChild(exportArea);
+    });
+}

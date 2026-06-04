@@ -1,3 +1,44 @@
+/* Container oculto para exportação */
+#export-summary-container {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+}
+
+/* Quadro de Resumo (60mm x 100mm) */
+.summary-export-frame {
+    width: 60mm;
+    height: 100mm;
+    background-color: #ffffff;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    font-family: sans-serif;
+}
+
+.summary-export-photo {
+    width: 45mm;
+    height: 45mm;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border: 2px solid #28a745; /* Padrão de cor da exportação */
+}
+
+.summary-export-info {
+    width: 100%;
+    text-align: left;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #333;
+}
+
+.summary-export-info b {
+    color: #28a745;
+}
 /* Destaque para o label do usuário atual */
 #currentuserlabel {
     background-color: #28a745 !important; /* Verde chamativo */
