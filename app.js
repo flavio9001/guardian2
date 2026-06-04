@@ -1021,3 +1021,5 @@ loadPublicPeople().catch((error) => {
   $("#loginPerson").innerHTML = `<option>Servidor indisponível</option>`;
   $(".login-hint").textContent = `Abra pelo servidor local. Detalhe: ${error.message}`;
 });
+
+document.addEventListener('DOMContentLoaded', () => { const userLabel = document.querySelector('.top-actions #currentuserlabel'); if (userLabel) { userLabel.style.backgroundColor = '#28a745'; userLabel.style.color = '#ffffff'; userLabel.style.padding = '5px 10px'; userLabel.style.borderRadius = '4px'; } const userPills = document.querySelectorAll('.user-pill'); userPills.forEach(pill => { pill.style.cursor = 'pointer'; pill.addEventListener('click', () => { window.location.href = '/funcionarios'; }); }); });
