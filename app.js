@@ -1021,5 +1021,3 @@ loadPublicPeople().catch((error) => {
   $("#loginPerson").innerHTML = `<option>Servidor indisponível</option>`;
   $(".login-hint").textContent = `Abra pelo servidor local. Detalhe: ${error.message}`;
 });
-// Adicionar ao final do arquivo
-renderOrgByVip(state.people);

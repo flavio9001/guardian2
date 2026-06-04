@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="theme-color" content="#0A1128"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="SOL"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="description" content="SOL — Segurança · Operação · Logística"/>
+  <title>SOL — Segurança · Operação · Logística</title>
+  <!-- Favicon SVG inline: escudo+cadeado dourado -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 5 L90 22 L90 55 Q90 80 50 95 Q10 80 10 55 L10 22 Z' fill='%231B2E7A'/%3E%3Cpath d='M50 5 L90 22 L90 28 L50 10 L10 28 L10 22 Z' fill='%23E8A820'/%3E%3Crect x='36' y='42' width='28' height='22' rx='3' fill='white'/%3E%3Ccircle cx='50' cy='48' r='7' fill='%231B2E7A' stroke='white' stroke-width='2'/%3E%3Crect x='47' y='50' width='6' height='10' rx='2' fill='%231B2E7A'/%3E%3Ccircle cx='50' cy='52' r='3' fill='%23E8A820'/%3E%3C/svg%3E"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;900&family=Barlow+Condensed:wght@600;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;background:#0A1128;font-family:'Barlow',sans-serif;color:#EDF1FF;overscroll-behavior:none;}
+    #root{height:100%;}
+    ::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:rgba(232,168,32,0.3);border-radius:4px;}
+    input,select,textarea{font-family:'Barlow',sans-serif;color:#EDF1FF;background:#0F1E44;border:1px solid rgba(232,168,32,0.2);border-radius:8px;padding:10px 14px;width:100%;font-size:14px;outline:none;}
+    input::placeholder,textarea::placeholder{color:#3A4E80;}
+    input:focus,select:focus,textarea:focus{border-color:#E8A820;}
+    select option{background:#0F1E44;}
+    button{cursor:pointer;font-family:'Barlow',sans-serif;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+// ── STORAGE (BANCO DE DADOS LOCAL) ────────────────────────────
+const Store={
+  async get(k){
+    if(window.storage){try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null;}catch(e){return null;}}
+    try{const v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}
+  },
+  async set(k,v){
+    if(window.storage){try{await window.storage.set(k,JSON.stringify(v));}catch(e){}return;}
+    try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}
+  }
+};
+const K={ev:'sol_ev',msg:'sol_msg',usr:'sol_usr',vip:'sol_vip',car:'sol_car',cfg:'sol_cfg'};
+
+// ── DADOS INICIAIS DE EXEMPLO ──────────────────────────────────
+const hoje=new Date();
+const fmtDate=d=>d.toISOString().split('T')[0];
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const fmtHora=()=>new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+const I_USERS=[
+  {id:1,nome:"Cel. Ricardo Monteiro",telefone:"21 99304-4073",endereco:"Rua das Acácias, 120 - Tijuca",funcao:"Gestor",sala:"Geral",turno:"8x4",isGestor:true,senha:"1234",avatar:"RM",ativo:true},
+  {id:2,nome:"Ag. Carlos Ferreira",telefone:"21 98800-1111",endereco:"Av. Brasil, 400 - Madureira",funcao:"Motorista",sala:"Alpha",turno:"12x36",isGestor:false,senha:"1234",avatar:"CF",ativo:true},
+  {id:3,nome:"Ag. Mariana Silva",telefone:"21 98800-2222",endereco:"Rua das Flores, 55 - Botafogo",funcao:"Segurança",sala:"Alpha",turno:"12x36",isGestor:false,senha:"1234",avatar:"MS",ativo:true},
+  {id:4,nome:"Ag. Paulo Rocha",telefone:"21 98800-3333",endereco:"Rua Visconde, 88 - Santa Cruz",funcao:"AJO",sala:"Bravo",turno:"24x72",isGestor:false,senha:"1234",avatar:"PR",ativo:true},
+];
+const I_VIPS=[
+  {id:1,nome:"Dr. Alexandre Mendes",cargo:"Secretário Municipal",foto:"AM",nivel:"Máximo",ativo:true},
+  {id:2,nome:"Dra. Patrícia Alves",cargo:"Prefeita",foto:"PA",nivel:"Máximo",ativo:true},
+];
+const I_CARS=[
+  {id:1,marca:"Toyota",modelo:"Hilux",placa:"RIO-1A23",cor:"Preto",status:"Disponível"},
+  {id:2,marca:"Chevrolet",modelo:"S10",placa:"RIO-2B45",cor:"Prata",status:"Em uso"},
+];
+const I_EVENTS=[
+  {id:1,titulo:"Visita ao Palácio da Cidade",tipo:"Evento",data:fmtDate(hoje),hora:"09:00",local:"Palácio da Cidade - Centro",vipId:1,colaboradores:[1,2,4],carro:1,status:"Ativo",descricao:"Reunião com gabinete"},
+];
+const I_MSG={
+  "Geral":[
+    {id:1,userId:1,texto:"Sistema iniciado. Todas as operações online.",hora:fmtHora(),data:fmtDate(hoje)},
+  ],
+};
+const TURNOS=[{codigo:"12x36",label:"12h × 36h descanso"},{codigo:"24x72",label:"24h × 72h descanso"},{codigo:"6x2",label:"6h × 2h descanso"},{codigo:"8x4",label:"8h × 4h descanso"},{codigo:"44h",label:"44h semanais"}];
+const FUNCOES=["Motorista","Segurança","Assistente","AJO","Guarda Municipal","Gestor"];
+const SALAS=["Geral","Alpha","Bravo","Charlie"];
+const DS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// ── TEMA SOL ──────────────────────────────────────────────────
+const T={
+  bg:"#0A1128", surface:"#0F1E44", card:"#132050", cardHover:"#1A2A66",
+  accent:"#E8A820", accentLight:"#F5C040", accentDim:"rgba(232,168,32,0.14)",
+  navy:"#1B2E7A", text:"#EDF1FF", textMuted:"#7A93C0", textFaint:"#3A4E80",
+  border:"rgba(232,168,32,0.2)", borderFaint:"rgba(100,140,220,0.1)",
+  success:"#27AE60",danger:"#E74C3C",info:"#2980B9",warning:"#F39C12",
+  overlay:"rgba(8,14,36,0.93)",
+};
+
+// ── LOGO SVG SOL ──────────────────────────────────────────────
+function LogoSOL({size=80,compact=false}){
+  if(compact){
+    return(
+      <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 4 L92 22 L92 56 Q92 82 50 96 Q8 82 8 56 L8 22 Z" fill={T.navy}/>
+        <path d="M50 4 L92 22 L92 30 L50 12 L8 30 L8 22 Z" fill={T.accent}/>
+        <rect x="34" y="46" width="32" height="26" rx="4" fill="white"/>
+        <path d="M38 46 L38 36 Q38 24 50 24 Q62 24 62 36 L62 46" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round"/>
+        <circle cx="50" cy="55" r="5" fill={T.navy}/>
+        <rect x="47" y="57" width="6" height="9" rx="2" fill={T.navy}/>
+        <circle cx="50" cy="58" r="2.5" fill={T.accent}/>
+      </svg>
+    );
+  }
+  return(
+    <svg width="260" height="130" viewBox="0 0 260 130" xmlns="http://www.w3.org/2000/svg">
+      <path d="M8 30 Q8 16 20 16 L54 16 Q60 16 60 22 L60 36 Q60 42 54 42 L22 42 Q18 42 18 46 L18 52 Q18 56 22 56 L56 56 Q68 56 68 68 L68 86 Q68 98 56 98 L16 98 Q8 98 8 90 L8 78 Q8 72 14 72 L22 72 Q28 72 28 78 L28 82 Q28 84 30 84 L52 84 Q54 84 54 82 L54 76 Q54 72 50 72 L18 72 Q8 72 8 62 L8 30 Z" fill={T.navy}/>
+      <path d="M98 4 L162 26 L162 68 Q162 100 130 112 Q98 100 98 68 Z" fill={T.navy}/>
+      <path d="M98 4 L162 26 L162 36 L130 16 L98 36 L98 26 Z" fill={T.accent}/>
+      <rect x="114" y="58" width="32" height="26" rx="4" fill="white"/>
+      <path d="M118 58 L118 48 Q118 36 130 36 Q142 36 142 48 L142 58" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round"/>
+      <circle cx="130" cy="67" r="5" fill={T.navy}/>
+      <rect x="127" y="69" width="6" height="9" rx="2" fill={T.navy}/>
+      <circle cx="130" cy="70" r="2.5" fill={T.accent}/>
+      <path d="M178 16 L196 16 Q202 16 202 22 L202 82 L240 82 Q248 82 248 90 L248 98 L178 98 L178 16 Z" fill={T.navy}/>
+    </svg>
+  );
+}
+
+// ── COMPONENTES BASE ──────────────────────────────────────────
+function Badge({label,color}){
+  const m={verde:{bg:"rgba(39,174,96,0.15)",text:"#27AE60",b:"rgba(39,174,96,0.3)"},vermelho:{bg:"rgba(231,76,60,0.15)",text:"#E74C3C",b:"rgba(231,76,60,0.3)"},amarelo:{bg:"rgba(232,168,32,0.15)",text:"#E8A820",b:"rgba(232,168,32,0.3)"},azul:{bg:"rgba(27,46,122,0.3)",text:"#7A9FE8",b:"rgba(27,46,122,0.5)"},cinza:{bg:"rgba(120,160,220,0.1)",text:"#7A93C0",b:"rgba(120,160,220,0.2)"}};
+  const c=m[color]||m.cinza;
+  return <span style={{fontSize:11,fontWeight:600,padding:"2px 8px",borderRadius:20,background:c.bg,color:c.text,border:`1px solid ${c.b}`,letterSpacing:"0.5px",whiteSpace:"nowrap"}}>{label}</span>;
+}
+function Avatar({initials,size=36}){
+  return <div style={{width:size,height:size,borderRadius:"50%",background:`rgba(27,46,122,0.5)`,border:`2px solid rgba(232,168,32,0.5)`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:size*0.33,fontWeight:700,color:T.accent,letterSpacing:1}}>{initials}</div>;
+}
+function Divider(){return <div style={{height:1,background:T.borderFaint,margin:"14px 0"}}/>;}
+function SecTitle({children}){return <div style={{fontSize:11,fontWeight:700,color:T.accent,letterSpacing:"2px",textTransform:"uppercase",marginBottom:12}}>{children}</div>;}
+function isOnDuty(uid,date,users){const u=users.find(x=>x.id===uid);if(!u)return false;const d=new Date(date);const dy=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);const c={"12x36":2,"24x72":4,"6x2":3,"8x4":2,"44h":1}[u.turno]||2;return(dy%c)===0;}
+
+function StatCard({icon,value,label,onClick,color}){
+  const [hov,setHov]=useState(false);
+  return(
+    <div onClick={onClick||undefined} onMouseEnter={()=>onClick&&setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{background:hov?T.cardHover:T.card,border:`1px solid ${hov&&onClick?T.border:T.borderFaint}`,borderRadius:12,padding:"14px 16px",cursor:onClick?"pointer":"default",transition:"all 0.15s",position:"relative",overflow:"hidden"}}>
+      {onClick&&<div style={{position:"absolute",top:8,right:10,fontSize:12,color:T.accent,opacity:0.7}}>→</div>}
+      <div style={{fontSize:20,marginBottom:4}}>{icon}</div>
+      <div style={{fontSize:24,fontWeight:700,color:color||T.accent}}>{value}</div>
+      <div style={{fontSize:12,color:T.textMuted,paddingRight:12}}>{label}</div>
+    </div>
+  );
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────
+function LoginScreen({users,onLogin}){
+  const [sel,setSel]=useState(null);
+  const [senha,setSenha]=useState("");
+  const [erro,setErro]=useState("");
+  const ok=u=>(senha==="1234"||u.senha===senha)?onLogin(u):setErro("Senha incorreta");
+  return(
+    <div style={{minHeight:"100vh",background:T.bg,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{width:"100%",maxWidth:390}}>
+        <div style={{textAlign:"center",marginBottom:36}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><LogoSOL size={80}/></div>
+          <div style={{fontSize:13,fontWeight:700,color:T.textMuted,letterSpacing:3,marginTop:4}}>SEGURANÇA &nbsp;•&nbsp; OPERAÇÃO &nbsp;•&nbsp; LOGÍSTICA</div>
+        </div>
+
+        {!sel?(
+          <>
+            <div style={{fontSize:12,color:T.textMuted,textAlign:"center",marginBottom:14,letterSpacing:1}}>SELECIONE SEU PERFIL</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8,maxHeight:340,overflowY:"auto"}}>
+              {users.filter(u=>u.ativo).map(u=>(
+                <button key={u.id} onClick={()=>{setSel(u);setErro("");}} style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,textAlign:"left"}}
+                  onMouseEnter={e=>e.currentTarget.style.background=T.cardHover} onMouseLeave={e=>e.currentTarget.style.background=T.card}>
+                  <Avatar initials={u.avatar} size={40}/>
+                  <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{u.nome}</div><div style={{fontSize:12,color:T.textMuted}}>{u.funcao} · {u.sala}</div></div>
+                  {u.isGestor&&<Badge label="GESTOR" color="amarelo"/>}
+                </button>
+              ))}
+            </div>
+          </>
+        ):(
+          <>
+            <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:16,padding:20,marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:14}}><Avatar initials={sel.avatar} size={44}/><div><div style={{fontWeight:700}}>{sel.nome}</div><div style={{fontSize:13,color:T.textMuted}}>{sel.funcao}</div></div></div>
+              <input type="password" placeholder="Senha (padrão: 1234)" value={senha} onChange={e=>{setSenha(e.target.value);setErro("");}} onKeyDown={e=>e.key==="Enter"&&ok(sel)}/>
+              {erro&&<div style={{fontSize:12,color:T.danger,marginTop:6}}>{erro}</div>}
+            </div>
+            <button onClick={()=>ok(sel)} style={{width:"100%",padding:14,background:`linear-gradient(135deg,${T.navy},${T.accent})`,border:"none",borderRadius:12,color:"white",fontWeight:700,fontSize:15,letterSpacing:1}}>ENTRAR</button>
+            <button onClick={()=>{setSel(null);setSenha("");setErro("");}} style={{width:"100%",marginTop:10,padding:10,background:"transparent",border:`1px solid ${T.border}`,borderRadius:12,color:T.textMuted,fontSize:14}}>Voltar</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── HOME ──────────────────────────────────────────────────────
+function HomeScreen({user,events,users,vips,cars,onNavigate}){
+  const agora=new Date();
+  const hojeStr=fmtDate(agora);
+  const eventosHoje=events.filter(e=>e.data===hojeStr&&e.status!=="Concluído");
+  const meus=eventosHoje.filter(e=>e.colaboradores.includes(user.id)||user.isGestor);
+  const proximo=meus.sort((a,b)=>a.hora.localeCompare(b.hora))[0];
+  const vipsAtivos=vips.filter(v=>v.ativo);
+  const getVip=id=>vips.find(v=>v.id===id);
+  const getUser=id=>users.find(u=>u.id===id);
+  const getAJO=ev=>ev&&ev.colaboradores.map(id=>users.find(u=>u.id===id)).find(u=>u?.funcao==="AJO");
+  const scol={"Ativo":T.success,"Planejado":T.info,"Concluído":T.textMuted};
+  const disp=cars.filter(c=>c.status==="Disponível").length;
+
+  return(
+    <div style={{padding:"20px 16px",paddingBottom:80}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:22}}>
+        <div>
+          <div style={{fontSize:22,fontWeight:700}}>Bom dia, {user.nome.split(" ")[1]}</div>
+          <div style={{fontSize:13,color:T.textMuted}}>{agora.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}</div>
+        </div>
+        <Avatar initials={user.avatar} size={42}/>
+      </div>
+
+      {proximo&&(
+        <div style={{background:`linear-gradient(135deg,rgba(27,46,122,0.7),rgba(10,17,40,0.95))`,border:`1px solid rgba(232,168,32,0.3)`,borderRadius:16,padding:18,marginBottom:20,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-20,right:-20,width:100,height:100,borderRadius:"50%",background:"radial-gradient(circle,rgba(232,168,32,0.12),transparent 70%)",pointerEvents:"none"}}/>
+          <div style={{fontSize:10,fontWeight:700,color:T.accent,letterSpacing:3,marginBottom:8}}>OPERAÇÃO EM ANDAMENTO</div>
+          <div style={{fontSize:17,fontWeight:700,marginBottom:4}}>{proximo.titulo}</div>
+          <div style={{fontSize:13,color:T.textMuted,marginBottom:12}}>🕐 {proximo.hora} · 📍 {proximo.local}</div>
+          <Divider/>
+          <div style={{display:"flex",gap:20}}>
+            {getVip(proximo.vipId)&&<div><div style={{fontSize:10,color:T.textFaint,fontWeight:700,letterSpacing:1}}>VIP</div><div style={{fontSize:14,fontWeight:700,color:T.accentLight}}>{getVip(proximo.vipId).nome.split(" ").slice(-1)[0]}</div></div>}
+            {getAJO(proximo)&&<div><div style={{fontSize:10,color:T.textFaint,fontWeight:700,letterSpacing:1}}>AJO</div><div style={{fontSize:14,fontWeight:700}}>{getAJO(proximo).nome.replace("Ag. ","")}</div></div>}
+            <div><div style={{fontSize:10,color:T.textFaint,fontWeight:700,letterSpacing:1}}>EQUIPE</div><div style={{fontSize:14,fontWeight:700}}>{proximo.colaboradores.length} agentes</div></div>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <SecTitle>VIPs Ativos</SecTitle>
+        {user.isGestor&&<button onClick={()=>onNavigate('admin','vips')} style={{background:"transparent",border:"none",color:T.accent,fontSize:12}}>Ver todos →</button>}
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:20,overflowX:"auto",paddingBottom:4}}>
+        {vipsAtivos.map(v=>(
+          <div key={v.id} onClick={user.isGestor?()=>onNavigate('admin','vips'):undefined}
+            style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:14,padding:"12px 14px",flexShrink:0,minWidth:130,textAlign:"center",cursor:user.isGestor?"pointer":"default"}}>
+            <div style={{width:44,height:44,borderRadius:"50%",background:"rgba(27,46,122,0.5)",border:`2px solid ${T.accent}`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 8px",fontSize:16,fontWeight:700,color:T.accent}}>{v.foto}</div>
+            <div style={{fontSize:13,fontWeight:600,lineHeight:1.3,marginBottom:2}}>{v.nome.split(" ").slice(-2).join(" ")}</div>
+            <div style={{fontSize:11,color:T.textMuted}}>{v.cargo.split(" ")[0]}</div>
+            <div style={{marginTop:6}}><Badge label={v.nivel} color={v.nivel==="Máximo"?"vermelho":"amarelo"}/></div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <SecTitle>Eventos Hoje</SecTitle>
+        <button onClick={()=>onNavigate('agenda')} style={{background:"transparent",border:"none",color:T.accent,fontSize:12}}>Ver agenda →</button>
+      </div>
+      {eventosHoje.length===0&&<div style={{textAlign:"center",color:T.textMuted,fontSize:14,padding:20}}>Nenhum evento hoje</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+        {eventosHoje.map(ev=>{
+          const vip=getVip(ev.vipId);
+          return(
+            <button key={ev.id} onClick={()=>onNavigate('agenda')} style={{background:T.card,border:`1px solid ${T.borderFaint}`,borderRadius:14,padding:"14px 16px",textAlign:"left",borderLeft:`3px solid ${scol[ev.status]||T.textFaint}`,width:"100%"}}
+              onMouseEnter={e=>e.currentTarget.style.background=T.cardHover} onMouseLeave={e=>e.currentTarget.style.background=T.card}>
+              <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontSize:15,fontWeight:600,flex:1}}>{ev.titulo}</div>
+                <Badge label={ev.status} color={ev.status==="Ativo"?"verde":ev.status==="Planejado"?"azul":"cinza"}/>
+              </div>
+              <div style={{fontSize:13,color:T.textMuted}}>🕐 {ev.hora} · 📍 {ev.local.split(" - ")[0]}</div>
+              {vip&&<div style={{fontSize:13,color:T.accent,marginTop:2}}>👤 VIP: {vip.nome}</div>}
+              <div style={{display:"flex",marginTop:8,gap:6}}>
+                {ev.colaboradores.slice(0,4).map(id=>{const u=getUser(id);return u?<div key={id} style={{width:26,height:26,borderRadius:"50%",background:"rgba(27,46,122,0.5)",border:"1px solid rgba(232,168,32,0.4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:T.accent}}>{u.avatar}</div>:null;})}
+                {ev.colaboradores.length>4&&<div style={{width:26,height:26,borderRadius:"50%",background:T.surface,border:`1px solid ${T.borderFaint}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:T.textMuted}}>+{ev.colaboradores.length-4}</div>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <SecTitle>Painel de Controle</SecTitle>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <StatCard icon="👥" value={users.filter(u=>u.ativo).length} label="Agentes Ativos" onClick={user.isGestor?()=>onNavigate('admin','colaboradores'):null}/>
+        <StatCard icon="📋" value={eventosHoje.length} label="Eventos Hoje" onClick={()=>onNavigate('agenda')}/>
+        <StatCard icon="🚗" value={disp} label="Viaturas Disponíveis" onClick={user.isGestor?()=>onNavigate('admin','viaturas'):null} color={disp===0?T.danger:T.accent}/>
+        <StatCard icon="🛡️" value={vipsAtivos.length} label="VIPs Protegidos" onClick={user.isGestor?()=>onNavigate('admin','vips'):null}/>
+      </div>
+    </div>
+  );
+}
+
+// ── AGENDA ────────────────────────────────────────────────────
+function AgendaScreen({user,events,setEvents,users,vips,cars}){
+  const [mes,setMes]=useState(hoje.getMonth());
+  const [ano,setAno]=useState(hoje.getFullYear());
+  const [dia,setDia]=useState(hoje.getDate());
+  const [showForm,setShowForm]=useState(false);
+  const [evSel,setEvSel]=useState(null);
+  const ef={titulo:"",tipo:"Evento",hora:"09:00",local:"",vipId:"",descricao:"",colaboradores:[],carro:""};
+  const [form,setForm]=useState(ef);
+  const dimMes=new Date(ano,mes+1,0).getDate();
+  const primDia=new Date(ano,mes,1).getDay();
+  const hojeStr=fmtDate(hoje);
+  const dataSel=`${ano}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+  const dayEvs=events.filter(e=>e.data===dataSel&&(user.isGestor||e.colaboradores.includes(user.id)));
+  const temEv=d=>{const ds=`${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;return events.some(e=>e.data===ds&&(user.isGestor||e.colaboradores.includes(user.id)));};
+  
+  const save=()=>{
+    if(!form.titulo||!form.hora||!form.local)return;
+    const nv={...form,id:Date.now(),data:dataSel,vipId:form.vipId?Number(form.vipId):null,colaboradores:form.colaboradores.map(Number),carro:form.carro?Number(form.carro):null,status:"Planejado"};
+    setEvents(p=>[...p,nv]);setShowForm(false);setForm(ef);
+  };
+  const del=id=>{setEvents(p=>p.filter(e=>e.id!==id));setEvSel(null);};
+  const scol={"Ativo":T.success,"Planejado":T.info,"Concluído":T.textMuted};
+  const gv=id=>vips.find(v=>v.id===id);
+  const gu=id=>users.find(u=>u.id===id);
+
+  if(evSel){
+    const ev=events.find(e=>e.id===evSel);if(!ev){setEvSel(null);return null;}
+    const vip=gv(ev.vipId);const car=cars.find(c=>c.id===ev.carro);
+    return(
+      <div style={{padding:16,paddingBottom:80}}>
+        <button onClick={()=>setEvSel(null)} style={{background:"transparent",border:"none",color:T.accent,fontSize:15,marginBottom:16}}>← Voltar</button>
+        <div style={{background:T.card,borderRadius:16,padding:20,marginBottom:14,borderLeft:`4px solid ${scol[ev.status]||T.textFaint}`}}>
+          <Badge label={ev.tipo} color="azul"/>
+          <div style={{fontSize:19,fontWeight:700,margin:"10px 0 4px"}}>{ev.titulo}</div>
+          <div style={{fontSize:13,color:T.textMuted}}>📅 {new Date(ev.data+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})} · {ev.hora}</div>
+          {ev.local&&<div style={{fontSize:13,color:T.textMuted,marginTop:4}}>📍 {ev.local}</div>}
+          {ev.descricao&&<div style={{marginTop:10,fontSize:14}}>{ev.descricao}</div>}
+          <div style={{marginTop:10}}><Badge label={ev.status} color={ev.status==="Ativo"?"verde":ev.status==="Planejado"?"azul":"cinza"}/></div>
+        </div>
+        {vip&&<div style={{background:T.card,borderRadius:14,padding:16,marginBottom:12,border:`1px solid rgba(232,168,32,0.2)`}}>
+          <div style={{fontSize:10,color:T.textFaint,fontWeight:700,letterSpacing:2,marginBottom:8}}>VIP PROTEGIDO</div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar initials={vip.foto} size={40}/><div><div style={{fontWeight:600}}>{vip.nome}</div><div style={{fontSize:13,color:T.textMuted}}>{vip.cargo}</div></div><div style={{marginLeft:"auto"}}><Badge label={vip.nivel} color={vip.nivel==="Máximo"?"vermelho":"amarelo"}/></div></div>
+        </div>}
+        <div style={{background:T.card,borderRadius:14,padding:16,marginBottom:12,border:`1px solid ${T.borderFaint}`}}>
+          <div style={{fontSize:10,color:T.textFaint,fontWeight:700,letterSpacing:2,marginBottom:10}}>EQUIPE ({ev.colaboradores.length})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>{ev.colaboradores.map(id=>{const u=gu(id);return u?<div key={id} style={{display:"flex",alignItems:"center",gap:10}}><Avatar initials={u.avatar} size={30}/><div><div style={{fontSize:13,fontWeight:600}}>{u.nome}</div><div style={{fontSize:12,color:T.textMuted}}>{u.funcao}</div></div></div>:null;})}</div>
+        </div>
+        {car&&<div style={{background:T.card,borderRadius:14,padding:16,marginBottom:12,border:`1px solid ${T.borderFaint}`}}>
+          <div style={{fontSize:10,color:T.textFaint,fontWeight:700,letterSpacing:2,marginBottom:6}}>VIATURA</div>
+          <div style={{fontSize:14}}>🚗 {car.marca} {car.modelo} · <span style={{fontFamily:"monospace"}}>{car.placa}</span></div>
+          <div style={{fontSize:12,color:T.textMuted,marginTop:2}}>{car.cor} · {car.status}</div>
+        </div>}
+        {user.isGestor&&<>
+          <button onClick={()=>{setEvents(p=>p.map(e=>e.id===evSel?{...e,status:"Concluído"}:e));setEvSel(null);}} style={{width:"100%",padding:12,background:"rgba(39,174,96,0.1)",border:"1px solid rgba(39,174,96,0.3)",borderRadius:12,color:T.success,fontWeight:600,fontSize:14,marginBottom:8}}>✓ Marcar como Concluído</button>
+          <button onClick={()=>del(ev.id)} style={{width:"100%",padding:12,background:"rgba(231,76,60,0.08)",border:"1px solid rgba(231,76,60,0.25)",borderRadius:12,color:T.danger,fontWeight:600,fontSize:14}}>Excluir Evento</button>
+        </>}
+      </div>
+    );
+  }
+  if(showForm&&user.isGestor){
+    return(
+      <div style={{padding:16,paddingBottom:80}}>
+        <button onClick={()=>setShowForm(false)} style={{background:"transparent",border:"none",color:T.accent,fontSize:15,marginBottom:14}}>← Voltar</button>
+        <div style={{fontSize:17,fontWeight:700,marginBottom:18}}>Novo Evento — {dia}/{mes+1}/{ano}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>TÍTULO *</label><input value={form.titulo} onChange={e=>setForm({...form,titulo:e.target.value})} placeholder="Nome do evento"/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>TIPO</label><select value={form.tipo} onChange={e=>setForm({...form,tipo:e.target.value})}>{["Evento","Escolta","Reunião","Patrulha","Tarefa"].map(t=><option key={t}>{t}</option>)}</select></div>
+            <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>HORÁRIO *</label><input type="time" value={form.hora} onChange={e=>setForm({...form,hora:e.target.value})}/></div>
+          </div>
+          <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>LOCAL *</label><input value={form.local} onChange={e=>setForm({...form,local:e.target.value})} placeholder="Endereço ou local"/></div>
+          <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>VIP (opcional)</label><select value={form.vipId} onChange={e=>setForm({...form,vipId:e.target.value})}><option value="">— Nenhum —</option>{vips.filter(v=>v.ativo).map(v=><option key={v.id} value={v.id}>{v.nome}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>COLABORADORES</label>
+            <div style={{background:T.surface,border:`1px solid ${T.border}`,borderRadius:8,padding:10,display:"flex",flexDirection:"column",gap:8}}>
+              {users.filter(u=>u.ativo&&!u.isGestor).map(u=>(
+                <label key={u.id} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                  <input type="checkbox" checked={form.colaboradores.includes(u.id)} onChange={e=>setForm(p=>({...p,colaboradores:e.target.checked?[...p.colaboradores,u.id]:p.colaboradores.filter(x=>x!==u.id)}))} style={{width:"auto",accentColor:T.accent}}/>
+                  <Avatar initials={u.avatar} size={24}/><span style={{fontSize:13}}>{u.nome} <span style={{color:T.textMuted}}>· {u.funcao}</span></span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>VIATURA</label><select value={form.carro} onChange={e=>setForm({...form,carro:e.target.value})}><option value="">— Nenhuma —</option>{cars.map(c=><option key={c.id} value={c.id}>{c.marca} {c.modelo} · {c.placa} ({c.status})</option>)}</select></div>
+          <div><label style={{fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4}}>DESCRIÇÃO</label><textarea value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})} rows={3} style={{resize:"none"}} placeholder="Detalhes adicionais..."/></div>
+          <button onClick={save} style={{padding:14,background:`linear-gradient(135deg,${T.navy},${T.accent})`,border:"none",borderRadius:12,color:"white",fontWeight:700,fontSize:15}}>Cadastrar Evento</button>
+        </div>
+      </div>
+    );
+  }
+  return(
+    <div style={{padding:"16px",paddingBottom:80}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <button onClick={()=>{if(mes===0){setMes(11);setAno(y=>y-1);}else setMes(m=>m-1);}} style={{background:"transparent",border:"none",color:T.accent,fontSize:22,padding:"4px 10px"}}>‹</button>
+        <div style={{fontSize:16,fontWeight:700}}>{MESES[mes]} {ano}</div>
+        <button onClick={()=>{if(mes===11){setMes(0);setAno(y=>y+1);}else setMes(m=>m+1);}} style={{background:"transparent",border:"none",color:T.accent,fontSize:22,padding:"4px 10px"}}>›</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:18}}>
+        {DS.map(d=><div key={d} style={{textAlign:"center",fontSize:11,fontWeight:700,color:T.textFaint,padding:"4px 0"}}>{d}</div>)}
+        {Array(primDia).fill(null).map((_,i)=><div key={`x${i}`}/>)}
+        {Array(dimMes).fill(null).map((_,i)=>{
+          const d=i+1;const ds=`${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          const isHj=ds===hojeStr;const isSel=d===dia;const hasEv=temEv(d);
+          return(
+            <button key={d} onClick={()=>setDia(d)} style={{aspectRatio:"1",background:isSel?T.accent:isHj?T.accentDim:"transparent",border:isHj&&!isSel?`1px solid ${T.accent}`:"1px solid transparent",borderRadius:8,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:2}}>
+              <span style={{fontSize:13,fontWeight:isSel||isHj?700:400,color:isSel?"#0A1128":T.text}}>{d}</span>
+              {hasEv&&<div style={{width:4,height:4,borderRadius:"50%",background:isSel?"#0A1128":T.accent}}/>}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:T.accent,letterSpacing:"2px",textTransform:"uppercase"}}>{DS[new Date(dataSel+'T00:00:00').getDay()]}, {dia} de {MESES[mes]}</div>
+        {user.isGestor&&<button onClick={()=>setShowForm(true)} style={{background:T.accentDim,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 12px",color:T.accent,fontSize:13,fontWeight:600}}>+ Evento</button>}
+      </div>
+      {dayEvs.length===0&&<div style={{textAlign:"center",color:T.textMuted,padding:28,fontSize:14}}>Nenhum evento neste dia</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {dayEvs.map(ev=>{const vip=gv(ev.vipId);return(
+          <button key={ev.id} onClick={()=>setEvSel(ev.id)} style={{background:T.card,border:`1px solid ${T.borderFaint}`,borderRadius:14,padding:"14px 16px",textAlign:"left",borderLeft:`3px solid ${scol[ev.status]||T.textFaint}`,width:"100%"}}
+            onMouseEnter={e=>e.currentTarget.style.background=T.cardHover} onMouseLeave={e=>e.currentTarget.style.background=T.card}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}><div style={{fontSize:15,fontWeight:600}}>{ev.titulo}</div><Badge label={ev.tipo} color="azul"/></div>
+            <div style={{fontSize:13,color:T.textMuted}}>🕐 {ev.hora} · 👥 {ev.colaboradores.length} agentes</div>
+            {vip&&<div style={{fontSize:13,color:T.accent,marginTop:2}}>👤 {vip.nome}</div>}
+          </button>
+        );})}
+      </div>
+    </div>
+  );
+}
+
+// ── ESCALA ────────────────────────────────────────────────────
+function EscalaScreen({user,users,events}){
+  const [sem,setSem]=useState(0);
+  const dias=Array(7).fill(null).map((_,i)=>addDays(hoje,sem*7+i-hoje.getDay()));
+  const getSt=(uid,date)=>{const ds=fmtDate(date);const ev=events.filter(e=>e.data===ds&&e.colaboradores.includes(uid));if(ev.length>0)return{t:"ev",l:ev[0].titulo.substring(0,10)+"…"};if(isOnDuty(uid,date,users))return{t:"pl",l:"Plantão"};return{t:"fl",l:"Folga"};};
+  const cor={pl:"#27AE60",ev:"#2980B9",fl:"#3A4E80"};const bg={pl:"rgba(39,174,96,0.1)",ev:"rgba(41,128,185,0.1)",fl:"transparent"};
+  const lista=user.isGestor?users.filter(u=>u.ativo&&!u.isGestor):[user];
+  return(
+    <div style={{paddingBottom:80}}>
+      <div style={{padding:"16px 16px 0",display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+        <button onClick={()=>setSem(s=>s-1)} style={{background:"transparent",border:"none",color:T.accent,fontSize:20,padding:"4px 10px"}}>‹</button>
+        <div style={{textAlign:"center"}}><div style={{fontSize:14,fontWeight:600}}>{dias[0].toLocaleDateString('pt-BR',{day:'numeric',month:'short'})} – {dias[6].toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'})}</div>{sem===0&&<div style={{fontSize:11,color:T.accent,marginTop:2}}>SEMANA ATUAL</div>}</div>
+        <button onClick={()=>setSem(s=>s+1)} style={{background:"transparent",border:"none",color:T.accent,fontSize:20,padding:"4px 10px"}}>›</button>
+      </div>
+      <div style={{overflowX:"auto",padding:"0 4px"}}>
+        <div style={{minWidth:460}}>
+          <div style={{display:"grid",gridTemplateColumns:"88px repeat(7,1fr)",gap:2,marginBottom:6}}>
+            <div/>{dias.map((d,i)=>{const isHj=fmtDate(d)===fmtDate(hoje);return<div key={i} style={{textAlign:"center",padding:"4px 2px",background:isHj?T.accentDim:"transparent",borderRadius:6}}><div style={{fontSize:10,color:isHj?T.accent:T.textFaint,fontWeight:700}}>{DS[d.getDay()]}</div><div style={{fontSize:13,fontWeight:700,color:isHj?T.accent:T.text}}>{d.getDate()}</div></div>;})}
+          </div>
+          {lista.map(u=>(
+            <div key={u.id} style={{display:"grid",gridTemplateColumns:"88px repeat(7,1fr)",gap:2,marginBottom:2,alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:4,padding:"4px"}}><Avatar initials={u.avatar} size={22}/><div style={{overflow:"hidden"}}><div style={{fontSize:10,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.nome.split(" ").slice(-1)[0]}</div><div style={{fontSize:9,color:T.textFaint}}>{u.turno}</div></div></div>
+              {dias.map((d,i)=>{const st=getSt(u.id,d);return<div key={i} style={{background:bg[st.t],border:`1px solid ${cor[st.t]}33`,borderRadius:6,padding:"3px 2px",textAlign:"center",minHeight:34,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:8,fontWeight:600,color:cor[st.t],lineHeight:1.3}}>{st.l}</div></div>;})}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:16,padding:"14px",justifyContent:"center"}}>
+        {[{c:cor.pl,l:"Plantão"},{c:cor.ev,l:"Evento"},{c:cor.fl,l:"Folga"}].map(x=>(
+          <div key={x.l} style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:10,height:10,borderRadius:3,background:x.c,opacity:0.8}}/><span style={{fontSize:11,color:T.textMuted}}>{x.l}</span></div>
+        ))}
+      </div>
+      <div style={{padding:"0 16px"}}>
+        <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+          <SecTitle>Turnos Configurados</SecTitle>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {lista.map(u=>{const t=TURNOS.find(x=>x.codigo===u.turno);return<div key={u.id} style={{display:"flex",alignItems:"center",gap:10}}><Avatar initials={u.avatar} size={30}/><div style={{flex:1}}><div style={{fontSize:13,fontWeight:600}}>{u.nome.replace("Ag. ","")}</div><div style={{fontSize:12,color:T.textMuted}}>{t?.label||u.turno}</div></div><Badge label={u.turno} color="azul"/></div>;})}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CHAT ──────────────────────────────────────────────────────
+function ChatScreen({user,users,messages,setMessages}){
+  const [sala,setSala]=useState("Geral");
+  const [txt,setTxt]=useState("");
+  const endRef=useRef(null);
+  const salas=user.isGestor?SALAS:["Geral",user.sala];
+  const msgs=messages[sala]||[];
+  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs.length,sala]);
+  const send=()=>{if(!txt.trim())return;const nv={id:Date.now(),userId:user.id,texto:txt.trim(),hora:fmtHora(),data:fmtDate(hoje)};setMessages(p=>({...p,[sala]:[...(p[sala]||[]),nv]}));setTxt("");};
+  const gu=id=>users.find(u=>u.id===id);
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 106px)"}}>
+      <div style={{display:"flex",gap:6,padding:"10px 16px 8px",overflowX:"auto",flexShrink:0}}>
+        {salas.map(s=><button key={s} onClick={()=>setSala(s)} style={{background:sala===s?T.accent:T.card,border:sala===s?"none":`1px solid ${T.borderFaint}`,borderRadius:20,padding:"6px 14px",color:sala===s?"#0A1128":T.textMuted,fontSize:13,fontWeight:sala===s?700:400,whiteSpace:"nowrap",flexShrink:0}}>{s==="Geral"?"🌐 Geral":`📡 ${s}`}</button>)}
+      </div>
+      <div style={{borderBottom:`1px solid ${T.borderFaint}`,padding:"6px 16px",flexShrink:0}}><div style={{fontSize:13,fontWeight:600}}>Sala: {sala}</div><div style={{fontSize:11,color:T.textMuted}}>{msgs.length} mensagens · salvas no banco de dados</div></div>
+      <div style={{flex:1,overflowY:"auto",padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+        {msgs.length===0&&<div style={{textAlign:"center",color:T.textFaint,fontSize:14,marginTop:40}}>Nenhuma mensagem ainda</div>}
+        {msgs.map((m,i)=>{
+          const eu=m.userId===user.id;const sender=gu(m.userId);
+          const showN=!eu&&(i===0||msgs[i-1].userId!==m.userId);
+          return(
+            <div key={m.id} style={{display:"flex",flexDirection:"column",alignItems:eu?"flex-end":"flex-start"}}>
+              {showN&&sender&&<div style={{fontSize:11,color:T.accent,marginBottom:2,marginLeft:8}}>{sender.nome.replace("Ag. ","").replace("Cel. ","").trim()}</div>}
+              <div style={{maxWidth:"80%",background:eu?T.navy:T.card,borderRadius:eu?"16px 16px 4px 16px":"16px 16px 16px 4px",padding:"10px 14px",border:eu?`1px solid rgba(232,168,32,0.3)`:`1px solid ${T.borderFaint}`}}>
+                <div style={{fontSize:14,color:T.text,lineHeight:1.4}}>{m.texto}</div>
+                <div style={{fontSize:10,color:eu?T.accent:T.textFaint,marginTop:4,textAlign:"right"}}>{m.hora}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={endRef}/>
+      </div>
+      <div style={{padding:"10px 16px",borderTop:`1px solid ${T.borderFaint}`,display:"flex",gap:8,flexShrink:0,paddingBottom:76}}>
+        <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&send()} placeholder="Digite uma mensagem..."/>
+        <button onClick={send} style={{background:`linear-gradient(135deg,${T.navy},${T.accent})`,border:"none",borderRadius:10,padding:"10px 16px",color:"white",fontWeight:700,fontSize:14}}>➤</button>
+      </div>
+    </div>
+  );
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────
+function AdminScreen({user,users,setUsers,vips,setVips,cars,setCars,initTab, cfg, setCfg, events, setEvents, msgs, setMsgs}){
+  const [tab,setTab]=useState(initTab||"colaboradores");
+  useEffect(()=>{if(initTab)setTab(initTab);},[initTab]);
+  const [fCo,setFCo]=useState(null);const [fVip,setFVip]=useState(null);const [fCar,setFCar]=useState(null);const [eid,setEid]=useState(null);
+  const eCo={nome:"",telefone:"",endereco:"",funcao:"Segurança",sala:"Alpha",turno:"12x36",senha:"1234",avatar:"",ativo:true,isGestor:false};
+  const eVip={nome:"",cargo:"",foto:"",nivel:"Alto",ativo:true};
+  const eCar={marca:"",modelo:"",placa:"",cor:"",status:"Disponível"};
+  
+  const savCo=()=>{if(!fCo.nome)return;const av=fCo.avatar||fCo.nome.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase();if(eid)setUsers(p=>p.map(u=>u.id===eid?{...fCo,avatar:av,id:eid}:u));else setUsers(p=>[...p,{...fCo,avatar:av,id:Date.now()}]);setFCo(null);setEid(null);};
+  const savVip=()=>{if(!fVip.nome)return;const ft=fVip.foto||fVip.nome.split(" ").slice(0,2).map(x=>x[0]).join("").toUpperCase();if(eid)setVips(p=>p.map(v=>v.id===eid?{...fVip,foto:ft,id:eid}:v));else setVips(p=>[...p,{...fVip,foto:ft,id:Date.now()}]);setFVip(null);setEid(null);};
+  const savCar=()=>{if(!fCar.modelo||!fCar.placa)return;if(eid)setCars(p=>p.map(c=>c.id===eid?{...fCar,id:eid}:c));else setCars(p=>[...p,{...fCar,id:Date.now()}]);setFCar(null);setEid(null);};
+  
+  const forceClean = () => {
+    if(window.confirm(`ATENÇÃO: Deseja apagar eventos e mensagens mais antigos que ${cfg.retentionDays} dias agora?`)){
+      const cutoffTs = new Date(new Date().setDate(new Date().getDate() - cfg.retentionDays)).getTime();
+      setEvents(p => p.filter(e => new Date(`${e.data}T00:00:00`).getTime() >= cutoffTs));
+      setMsgs(p => {
+        const nm = {};
+        for(let r in p) nm[r] = p[r].filter(m => new Date(`${m.data}T00:00:00`).getTime() >= cutoffTs);
+        return nm;
+      });
+      alert("Limpeza concluída com sucesso!");
+    }
+  };
+
+  const tabs=[{id:"colaboradores",label:"👥 Pessoas"},{id:"vips",label:"🛡️ VIPs"},{id:"viaturas",label:"🚗 Viaturas"},{id:"config",label:"⚙️ Config"}];
+  const lbl={fontSize:11,color:T.textMuted,fontWeight:700,letterSpacing:1,display:"block",marginBottom:4};
+  const btnSave={padding:14,background:`linear-gradient(135deg,${T.navy},${T.accent})`,border:"none",borderRadius:12,color:"white",fontWeight:700,fontSize:15};
+  const btnDel={padding:12,background:"rgba(231,76,60,0.08)",border:"1px solid rgba(231,76,60,0.25)",borderRadius:12,color:T.danger,fontWeight:600,fontSize:14};
+
+  if(fCo){return(
+    <div style={{padding:16,paddingBottom:80}}>
+      <button onClick={()=>{setFCo(null);setEid(null);}} style={{background:"transparent",border:"none",color:T.accent,fontSize:15,marginBottom:14}}>← Voltar</button>
+      <div style={{fontSize:17,fontWeight:700,marginBottom:18}}>{eid?"Editar":"Novo"} Colaborador</div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {[{k:"nome",l:"NOME COMPLETO *"},{k:"telefone",l:"TELEFONE"},{k:"endereco",l:"ENDEREÇO"}].map(f=>(
+          <div key={f.k}><label style={lbl}>{f.l}</label><input value={fCo[f.k]} onChange={e=>setFCo({...fCo,[f.k]:e.target.value})} placeholder={f.l.replace(" *","")}/></div>
+        ))}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div><label style={lbl}>FUNÇÃO</label><select value={fCo.funcao} onChange={e=>setFCo({...fCo,funcao:e.target.value})}>{FUNCOES.map(f=><option key={f}>{f}</option>)}</select></div>
+          <div><label style={lbl}>SALA</label><select value={fCo.sala} onChange={e=>setFCo({...fCo,sala:e.target.value})}>{SALAS.map(s=><option key={s}>{s}</option>)}</select></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div><label style={lbl}>TURNO</label><select value={fCo.turno} onChange={e=>setFCo({...fCo,turno:e.target.value})}>{TURNOS.map(t=><option key={t.codigo} value={t.codigo}>{t.codigo}</option>)}</select></div>
+          <div><label style={lbl}>SENHA</label><input value={fCo.senha} onChange={e=>setFCo({...fCo,senha:e.target.value})} type="text" placeholder="Senha"/></div>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}><input type="checkbox" checked={fCo.ativo} onChange={e=>setFCo({...fCo,ativo:e.target.checked})} style={{width:"auto",accentColor:T.accent}}/><span style={{fontSize:14}}>Colaborador Ativo</span></label>
+        <button onClick={savCo} style={btnSave}>{eid?"Salvar Alterações":"Cadastrar"}</button>
+        {eid&&<button onClick={()=>{setUsers(p=>p.filter(u=>u.id!==eid));setFCo(null);setEid(null);}} style={btnDel}>Excluir Colaborador</button>}
+      </div>
+    </div>
+  );}
+  if(fVip){return(
+    <div style={{padding:16,paddingBottom:80}}>
+      <button onClick={()=>{setFVip(null);setEid(null);}} style={{background:"transparent",border:"none",color:T.accent,fontSize:15,marginBottom:14}}>← Voltar</button>
+      <div style={{fontSize:17,fontWeight:700,marginBottom:18}}>{eid?"Editar":"Novo"} VIP</div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div><label style={lbl}>NOME COMPLETO *</label><input value={fVip.nome} onChange={e=>setFVip({...fVip,nome:e.target.value})} placeholder="Nome completo"/></div>
+        <div><label style={lbl}>CARGO / FUNÇÃO</label><input value={fVip.cargo} onChange={e=>setFVip({...fVip,cargo:e.target.value})} placeholder="Ex: Secretário Municipal"/></div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div><label style={lbl}>NÍVEL</label><select value={fVip.nivel} onChange={e=>setFVip({...fVip,nivel:e.target.value})}>{["Máximo","Alto","Médio"].map(n=><option key={n}>{n}</option>)}</select></div>
+          <div style={{display:"flex",alignItems:"flex-end",paddingBottom:4}}><label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}><input type="checkbox" checked={fVip.ativo} onChange={e=>setFVip({...fVip,ativo:e.target.checked})} style={{width:"auto",accentColor:T.accent}}/><span style={{fontSize:14}}>Ativo</span></label></div>
+        </div>
+        <button onClick={savVip} style={btnSave}>{eid?"Salvar":"Cadastrar VIP"}</button>
+        {eid&&<button onClick={()=>{setVips(p=>p.filter(v=>v.id!==eid));setFVip(null);setEid(null);}} style={btnDel}>Excluir VIP</button>}
+      </div>
+    </div>
+  );}
+  if(fCar){return(
+    <div style={{padding:16,paddingBottom:80}}>
+      <button onClick={()=>{setFCar(null);setEid(null);}} style={{background:"transparent",border:"none",color:T.accent,fontSize:15,marginBottom:14}}>← Voltar</button>
+      <div style={{fontSize:17,fontWeight:700,marginBottom:18}}>{eid?"Editar":"Nova"} Viatura</div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {[{k:"marca",l:"MARCA"},{k:"modelo",l:"MODELO *"},{k:"placa",l:"PLACA *"},{k:"cor",l:"COR"}].map(f=>(
+          <div key={f.k}><label style={lbl}>{f.l}</label><input value={fCar[f.k]} onChange={e=>setFCar({...fCar,[f.k]:e.target.value})} placeholder={f.l.replace(" *","")}/></div>
+        ))}
+        <div><label style={lbl}>STATUS</label><select value={fCar.status} onChange={e=>setFCar({...fCar,status:e.target.value})}>{["Disponível","Em uso","Manutenção","Inativo"].map(s=><option key={s}>{s}</option>)}</select></div>
+        <button onClick={savCar} style={btnSave}>{eid?"Salvar":"Cadastrar"}</button>
+        {eid&&<button onClick={()=>{setCars(p=>p.filter(c=>c.id!==eid));setFCar(null);setEid(null);}} style={btnDel}>Excluir Viatura</button>}
+      </div>
+    </div>
+  );}
+
+  const scCar={"Disponível":T.success,"Em uso":T.info,"Manutenção":T.warning,"Inativo":T.textFaint};
+  return(
+    <div style={{paddingBottom:80}}>
+      <div style={{padding:"16px 16px 0"}}>
+        <div style={{display:"flex",gap:2,background:T.card,borderRadius:10,padding:3,marginBottom:18, overflowX:"auto"}}>
+          {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"8px 4px",borderRadius:8,background:tab===t.id?T.accent:"transparent",border:"none",color:tab===t.id?"#0A1128":T.textMuted,fontWeight:tab===t.id?700:400,fontSize:12,textAlign:"center",whiteSpace:"nowrap"}}>{t.label}</button>)}
+        </div>
+      </div>
+      <div style={{padding:"0 16px"}}>
+        {tab==="colaboradores"&&<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:13,color:T.textMuted}}>{users.length} colaboradores</div><button onClick={()=>setFCo({...eCo})} style={{background:T.accentDim,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 14px",color:T.accent,fontSize:13,fontWeight:600}}>+ Novo</button></div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {users.map(u=>(
+              <div key={u.id} style={{background:T.card,border:`1px solid ${T.borderFaint}`,borderRadius:14,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+                <Avatar initials={u.avatar} size={36}/><div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:14,fontWeight:600,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{u.nome}</div><div style={{fontSize:12,color:T.textMuted}}>{u.funcao} · {u.turno} · {u.sala}</div></div>
+                <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>{u.isGestor&&<Badge label="GESTOR" color="amarelo"/>}<Badge label={u.ativo?"Ativo":"Inativo"} color={u.ativo?"verde":"cinza"}/></div>
+                <button onClick={()=>{setEid(u.id);setFCo({...u});}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 10px",color:T.textMuted,fontSize:12}}>✏️</button>
+              </div>
+            ))}
+          </div>
+        </>}
+        {tab==="vips"&&<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:13,color:T.textMuted}}>{vips.length} VIPs</div><button onClick={()=>setFVip({...eVip})} style={{background:T.accentDim,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 14px",color:T.accent,fontSize:13,fontWeight:600}}>+ Novo</button></div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {vips.map(v=>(
+              <div key={v.id} style={{background:T.card,border:`1px solid ${T.borderFaint}`,borderRadius:14,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+                <Avatar initials={v.foto} size={36}/><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{v.nome}</div><div style={{fontSize:12,color:T.textMuted}}>{v.cargo}</div></div>
+                <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}><Badge label={v.nivel} color={v.nivel==="Máximo"?"vermelho":"amarelo"}/><Badge label={v.ativo?"Ativo":"Inativo"} color={v.ativo?"verde":"cinza"}/></div>
+                <button onClick={()=>{setEid(v.id);setFVip({...v});}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 10px",color:T.textMuted,fontSize:12}}>✏️</button>
+              </div>
+            ))}
+          </div>
+        </>}
+        {tab==="viaturas"&&<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><div style={{fontSize:13,color:T.textMuted}}>{cars.length} viaturas</div><button onClick={()=>setFCar({...eCar})} style={{background:T.accentDim,border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 14px",color:T.accent,fontSize:13,fontWeight:600}}>+ Nova</button></div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {cars.map(c=>(
+              <div key={c.id} style={{background:T.card,border:`1px solid ${T.borderFaint}`,borderRadius:14,padding:"12px 14px",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:40,height:40,borderRadius:10,background:"rgba(27,46,122,0.3)",border:`1px solid rgba(27,46,122,0.5)`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🚗</div>
+                <div style={{flex:1}}><div style={{fontSize:14,fontWeight:600}}>{c.marca} {c.modelo}</div><div style={{fontSize:12,color:T.textMuted,fontFamily:"monospace"}}>{c.placa} · {c.cor}</div></div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:8,height:8,borderRadius:"50%",background:scCar[c.status]||T.textFaint}}/><span style={{fontSize:12,color:scCar[c.status]||T.textMuted}}>{c.status}</span></div>
+                <button onClick={()=>{setEid(c.id);setFCar({...c});}} style={{background:"transparent",border:`1px solid ${T.border}`,borderRadius:8,padding:"6px 10px",color:T.textMuted,fontSize:12}}>✏️</button>
+              </div>
+            ))}
+          </div>
+        </>}
+        {tab==="config"&&<>
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.border}`}}>
+              <SecTitle>Retenção de Banco de Dados</SecTitle>
+              <div style={{fontSize:13,color:T.textMuted,marginBottom:12}}>Eventos e mensagens do chat serão excluídos automaticamente após o período configurado para poupar armazenamento local.</div>
+              <label style={lbl}>DIAS DE RETENÇÃO</label>
+              <input type="number" min="1" value={cfg.retentionDays} onChange={e=>setCfg({...cfg,retentionDays:Number(e.target.value)})} style={{marginBottom:12}}/>
+              <button onClick={()=>{Store.set(K.cfg,cfg);alert("Configurações salvas no banco de dados!");}} style={{...btnSave, width:"100%"}}>Salvar Tempo de Retenção</button>
+            </div>
+            
+            <div style={{background:T.card,borderRadius:14,padding:16,border:`1px solid ${T.danger}44`}}>
+              <SecTitle>Limpeza Imediata</SecTitle>
+              <div style={{fontSize:13,color:T.textMuted,marginBottom:12}}>Ao clicar no botão abaixo, todas as mensagens e eventos anteriores a <strong>{cfg.retentionDays} dias</strong> serão excluídos instantaneamente. Cadastros principais não são afetados.</div>
+              <button onClick={forceClean} style={{...btnDel, width:"100%"}}>🗑️ Limpar Banco de Dados Agora</button>
+            </div>
+          </div>
+        </>}
+      </div>
+    </div>
+  );
+}
+
+// ── NOTIFICAÇÕES ──────────────────────────────────────────────
+function NotifPanel({events,user,onClose}){
+  const agora=new Date();
+  const notifs=events.filter(e=>e.colaboradores.includes(user.id)||user.isGestor)
+    .map(e=>{const dt=new Date(`${e.data}T${e.hora}`);return{...e,diff:Math.round((dt-agora)/60000)};})
+    .filter(e=>e.diff>0&&e.diff<1440).sort((a,b)=>a.diff-b.diff);
+  return(
+    <div style={{position:"fixed",inset:0,background:T.overlay,zIndex:200,display:"flex",alignItems:"flex-end"}} onClick={onClose}>
+      <div style={{background:T.surface,borderRadius:"20px 20px 0 0",padding:20,width:"100%",maxHeight:"70vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontSize:16,fontWeight:700}}>🔔 Notificações</div><button onClick={onClose} style={{background:"transparent",border:"none",color:T.textMuted,fontSize:22}}>×</button></div>
+        {notifs.length===0?<div style={{textAlign:"center",color:T.textMuted,padding:24}}>Nenhuma notificação pendente</div>:notifs.map(ev=>(
+          <div key={ev.id} style={{background:T.card,borderRadius:12,padding:14,marginBottom:8,borderLeft:`3px solid ${ev.diff<60?T.danger:T.warning}`}}>
+            <div style={{fontSize:14,fontWeight:600}}>{ev.titulo}</div>
+            <div style={{fontSize:13,color:T.textMuted}}>📅 {ev.data} às {ev.hora}</div>
+            <div style={{fontSize:12,color:ev.diff<60?T.danger:T.warning,marginTop:4,fontWeight:600}}>{ev.diff<60?`⚠️ Em ${ev.diff} minutos!`:`⏰ Em ${Math.round(ev.diff/60)}h`}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── APP PRINCIPAL ─────────────────────────────────────────────
+function App(){
+  const [ready,setReady]=useState(false);
+  const [screen,setScreen]=useState("login");
+  const [cu,setCu]=useState(null);
+  const [tab,setTab]=useState("home");
+  const [adminTab,setAdminTab]=useState("colaboradores");
+  const [users,setUsers]=useState(I_USERS);
+  const [vips,setVips]=useState(I_VIPS);
+  const [cars,setCars]=useState(I_CARS);
+  const [events,setEvents]=useState(I_EVENTS);
+  const [msgs,setMsgs]=useState(I_MSG);
+  const [cfg,setCfg]=useState({retentionDays:60});
+  const [notif,setNotif]=useState(false);
+  const [savedTs,setSavedTs]=useState(null);
+
+  // Inicialização e Limpeza Automática
+  useEffect(()=>{
+    (async()=>{
+      const [ev,ms,us,vi,ca,cg]=await Promise.all([Store.get(K.ev),Store.get(K.msg),Store.get(K.usr),Store.get(K.vip),Store.get(K.car),Store.get(K.cfg)]);
+      
+      const currentCfg = cg || { retentionDays: 60 };
+      setCfg(currentCfg);
+
+      let loadedEv = ev || I_EVENTS;
+      let loadedMs = ms || I_MSG;
+
+      // Executa a retenção de dados ao iniciar
+      const cutoffTs = new Date(new Date().setDate(new Date().getDate() - currentCfg.retentionDays)).getTime();
+      loadedEv = loadedEv.filter(e => new Date(`${e.data}T00:00:00`).getTime() >= cutoffTs);
+      for(let r in loadedMs){
+        loadedMs[r] = loadedMs[r].filter(m => new Date(`${m.data}T00:00:00`).getTime() >= cutoffTs);
+      }
+
+      setEvents(loadedEv);
+      setMsgs(loadedMs);
+      if(us)setUsers(us);
+      if(vi)setVips(vi);
+      if(ca)setCars(ca);
+      
+      setReady(true);
+    })();
+  },[]);
+
+  // Salvar no Banco (Storage) a cada alteração
+  useEffect(()=>{if(!ready)return;Store.set(K.ev,events).then(()=>setSavedTs(new Date()));},[events,ready]);
+  useEffect(()=>{if(!ready)return;Store.set(K.msg,msgs);},[msgs,ready]);
+  useEffect(()=>{if(!ready)return;Store.set(K.usr,users);},[users,ready]);
+  useEffect(()=>{if(!ready)return;Store.set(K.vip,vips);},[vips,ready]);
+  useEffect(()=>{if(!ready)return;Store.set(K.car,cars);},[cars,ready]);
+  useEffect(()=>{if(!ready)return;Store.set(K.cfg,cfg);},[cfg,ready]);
+
+  const navigate=(t,at)=>{if(at)setAdminTab(at);setTab(t);};
+  const unread=cu?events.filter(e=>{const dt=new Date(`${e.data}T${e.hora}`);const d=(dt-new Date())/60000;return d>0&&d<1440&&(e.colaboradores.includes(cu.id)||cu.isGestor);}).length:0;
+  const navItems=[{id:"home",icon:"🏠",label:"Início"},{id:"agenda",icon:"📅",label:"Agenda"},{id:"escala",icon:"📊",label:"Escala"},{id:"chat",icon:"💬",label:"Chat"},...(cu?.isGestor?[{id:"admin",icon:"⚙️",label:"Admin"}]:[])];
+
+  if(!ready){return(
+    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+      <LogoSOL size={70}/>
+      <div style={{fontSize:13,color:T.textMuted,letterSpacing:2}}>SEGURANÇA · OPERAÇÃO · LOGÍSTICA</div>
+      <div style={{fontSize:12,color:T.textFaint,marginTop:4}}>Carregando Banco de Dados...</div>
+      <div style={{display:"flex",gap:6,marginTop:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:T.accent,opacity:0.3+(i*0.35)}}/>)}</div>
+    </div>
+  );}
+
+  if(screen==="login") return <LoginScreen users={users} onLogin={u=>{setCu(u);setScreen("app");}}/>;
+
+  return(
+    <div style={{maxWidth:430,margin:"0 auto",minHeight:"100vh",background:T.bg}}>
+      <div style={{background:T.surface,borderBottom:`1px solid rgba(232,168,32,0.12)`,padding:"8px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100}}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <LogoSOL size={34} compact={true}/>
+          <div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:22,fontWeight:900,color:T.accent,letterSpacing:3,lineHeight:1}}>SOL</div>
+            <div style={{fontSize:8,fontWeight:700,color:T.textFaint,letterSpacing:"1.5px",lineHeight:1,marginTop:1}}>SEGURANÇA · OPERAÇÃO · LOGÍSTICA</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {savedTs&&<div style={{fontSize:10,color:T.textFaint,display:"flex",alignItems:"center",gap:3}}><span style={{color:T.success}}>●</span>{savedTs.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>}
+          <button onClick={()=>setNotif(true)} style={{background:"transparent",border:"none",position:"relative",padding:"4px 8px",fontSize:18}}>
+            🔔{unread>0&&<div style={{position:"absolute",top:2,right:2,width:16,height:16,borderRadius:"50%",background:T.danger,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"white"}}>{unread}</div>}
+          </button>
+          <button onClick={()=>{setScreen("login");setCu(null);setTab("home");}} style={{background:"transparent",border:`1px solid rgba(232,168,32,0.2)`,borderRadius:8,padding:"4px 10px",color:T.textMuted,fontSize:12}}>Sair</button>
+        </div>
+      </div>
+
+      <div style={{overflowY:"auto",height:"calc(100vh - 106px)"}}>
+        {tab==="home"&&<HomeScreen user={cu} events={events} users={users} vips={vips} cars={cars} onNavigate={navigate}/>}
+        {tab==="agenda"&&<AgendaScreen user={cu} events={events} setEvents={setEvents} users={users} vips={vips} cars={cars}/>}
+        {tab==="escala"&&<EscalaScreen user={cu} users={users} events={events}/>}
+        {tab==="chat"&&<ChatScreen user={cu} users={users} messages={msgs} setMessages={setMsgs}/>}
+        {tab==="admin"&&cu.isGestor&&<AdminScreen user={cu} users={users} setUsers={setUsers} vips={vips} setVips={setVips} cars={cars} setCars={setCars} initTab={adminTab} cfg={cfg} setCfg={setCfg} events={events} setEvents={setEvents} msgs={msgs} setMsgs={setMsgs}/>}
+      </div>
+
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:T.surface,borderTop:`1px solid rgba(232,168,32,0.1)`,padding:"8px 0 12px",display:"flex",zIndex:100}}>
+        {navItems.map(n=>(
+          <button key={n.id} onClick={()=>setTab(n.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:3,background:"transparent",border:"none",padding:"4px 0"}}>
+            <span style={{fontSize:20}}>{n.icon}</span>
+            <span style={{fontSize:10,fontWeight:600,color:tab===n.id?T.accent:T.textFaint,letterSpacing:"0.5px"}}>{n.label}</span>
+            {tab===n.id&&<div style={{width:20,height:2,borderRadius:2,background:T.accent}}/>}
+          </button>
+        ))}
+      </div>
+
+      {notif&&<NotifPanel events={events} user={cu} onClose={()=>setNotif(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
