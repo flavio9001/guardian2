@@ -1,11 +1,6 @@
 <?php
 declare(strict_types=1);
-     session_start();
-     if (!isset($_SESSION['user_id']) && $_GET['action'] !== 'get_login_users' && $_GET['action'] !== 'login') {
-         header('HTTP/1.1 401 Unauthorized');
-         echo json_encode(['error' => 'Acesso negado']);
-         exit;
-     }
+
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, X-User-Id');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
