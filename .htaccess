@@ -1,5 +1,26 @@
 Options -Indexes
 
+# Bloquear acesso direto a arquivos sensíveis
+<FilesMatch "\.(sql|db_config\.php)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear listagem de diretórios
+Options -Indexes
+
+# Proteger arquivos de configuração comuns
+<FilesMatch "^(\.|config|env|settings|database|db)">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Impedir acesso a arquivos ocultos (ex: .git, .env)
+<FilesMatch "^\.">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /         ← mude de /sgs/ para /
