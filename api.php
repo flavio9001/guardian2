@@ -1,19 +1,32 @@
 <?php
 header('Content-Type: application/json');
 
-$host = 'localhost';
-$db = 'your_database';
-$user = 'your_username';
-$pass = 'your_password';
+// Carrega as configurações do seu arquivo db_config.php
+$config = require 'db_config.php';
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $dsn = "mysql:host={$config['host']};dbname={$config['database']};charset={$config['charset']}";
+    $pdo = new PDO($dsn, $config['username'], $config['password'], [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+    ]);
 
-    $stmt = $pdo->query("SELECT id, name, role, sol_group, status, photo, address FROM sol_people");
-    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Pega o caminho solicitado pelo app.js (ex: state ou people/public)
+    $path = $_GET['path'] ?? '';
 
-    echo json_encode($employees);
+    if ($path === 'people/public') {
+        $stmt = $pdo->query("SELECT id, name, username FROM sol_people WHERE active = 1");
+        echo json_encode($stmt->fetchAll());
+    } elseif ($path === 'state') {
+        // Retorna o estado completo para o Dashboard
+        $people = $pdo->query("SELECT * FROM sol_people ORDER BY name")->fetchAll();
+        $groups = $pdo->query("SELECT * FROM sol_groups")->fetchAll();
+        echo json_encode(['people' => $people, 'groups' => $groups]);
+    } else {
+        http_response_code(404);
+        echo json_encode(['error' => 'Rota não encontrada']);
+    }
 } catch (PDOException $e) {
-    echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
+    http_response_code(500);
+    echo json_encode(['error' => 'Falha na conexão', 'details' => $e->getMessage()]);
 }

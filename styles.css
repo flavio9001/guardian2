@@ -1,71 +1,3 @@
-/* Container oculto para exportação */
-#export-summary-container {
-    position: absolute;
-    left: -9999px;
-    top: -9999px;
-}
-/* Quadro de Resumo Paisagem (170mm x 120mm) */
-.summary-export-landscape {
-    width: 170mm;
-    height: 120mm;
-    background-color: #ffffff;
-    display: flex;
-    padding: 15mm;
-    gap: 10mm;
-    border: 1px solid #ddd;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.export-photo-side {
-    width: 60mm;
-    height: 80mm;
-    object-fit: cover;
-    border: 3px solid #28a745;
-    border-radius: 8px;
-}
-
-.export-info-side {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    color: #333;
-}
-
-.export-info-side p {
-    margin: 8px 0;
-    font-size: 16px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 4px;
-}
-
-.export-info-side b {
-    color: #28a745;
-    text-transform: uppercase;
-    font-size: 14px;
-    display: block;
-}
-/* Destaque para o label do usuário atual */
-#currentuserlabel {
-    background-color: #28a745 !important; /* Verde chamativo */
-    color: white !important;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-weight: bold;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-/* Tornar as pills de funcionários visualmente clicáveis */
-.user-pill {
-    cursor: pointer;
-    transition: transform 0.1s ease, filter 0.2s ease;
-}
-
-.user-pill:hover {
-    filter: brightness(0.9);
-    transform: scale(1.05);
-}
 :root {
   color-scheme: light;
   --ink: #172326;
@@ -83,16 +15,7 @@
 }
 
 * { box-sizing: border-box; }
-#currentUserLabel {
-  background-color: #009c3b;
-  color: #ffffff;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-weight: 600;
-  display: inline-block;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-size: 0.95rem;
-}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -984,61 +907,4 @@ input:focus, select:focus, textarea:focus {
   .people-list, .schedule-grid {
     grid-template-columns: 1fr;
   }
-  
-/* Interatividade das etiquetas (Pills) */
-.user-pill {
-    cursor: pointer !important;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
-}
-
-.user-pill:hover {
-    filter: brightness(0.85);
-    transform: translateY(-2px);
-    border-color: #28a745;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-#currentuserlabel {
-    background-color: #28a745 !important;
-    color: white !important;
-    padding: 6px 14px;
-    border-radius: 50px;
-    font-weight: 600;
-    box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
-}
-
-.summary-export-landscape {
-    width: 170mm;
-    height: 120mm;
-    background-color: #ffffff;
-    display: flex;
-    padding: 15mm;
-    gap: 10mm;
-    border: 1px solid #ddd;
-    box-sizing: border-box;
-    font-family: sans-serif;
-    position: absolute;
-    left: -9999px;
-}
-
-.export-photo-side {
-    width: 60mm;
-    height: 80mm;
-    object-fit: cover;
-    border: 3px solid #28a745;
-    border-radius: 8px;
-}
-
-.export-info-side {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.export-info-side b {
-    color: #28a745;
-    display: block;
-    font-size: 14px;
-}
 }
