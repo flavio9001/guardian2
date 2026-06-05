@@ -1,0 +1,19 @@
+Options -Indexes
+
+# --- Rewrite obrigatório para LiteSpeed / Hostinger ---
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /sgs/
+
+  # Não reescreve arquivos ou pastas que existam fisicamente
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Rota da API: /api/qualquer-coisa → api.php?path=qualquer-coisa
+  RewriteRule ^api/(.*)$ api.php?path=$1 [QSA,L]
+</IfModule>
+
+# --- Bloqueia acesso direto a arquivos sensíveis ---
+<FilesMatch "^(db_config\.php|db\.json|dev-server\.mjs|diagnostico\.php|diag_debug\.php)$">
+  Require all denied
+</FilesMatch>
