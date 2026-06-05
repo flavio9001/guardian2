@@ -20,6 +20,126 @@ function uid(prefix) {
   return `${prefix}-${crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)}`;
 }
 
+//exportação resumo 
+function exportEmployeeSummary(employeeData) {
+    const exportArea = document.createElement('div');
+    exportArea.className = 'summary-export-landscape';
+    
+    // Define a foto ou um avatar padrão
+    const photoSrc = employeeData.photo || 'https://via.placeholder.com/150?text=Sem+Foto';
+
+    exportArea.innerHTML = `
+        <img src="${photoSrc}" class="export-photo-side" id="export-img-temp" crossorigin="anonymous">
+        <div class="export-info-side">
+            <p><b>Nome Completo</b> ${employeeData.name}</p>
+            <p><b>Função / Cargo</b> ${employeeData.role}</p>
+            <p><b>Grupo Operacional</b> ${employeeData.group || employeeData.groupId || 'Não informado'}</p>
+            <p><b>Endereço Residencial</b> ${employeeData.address || 'Não informado'}</p>
+            <p><b>Status do Cadastro</b> ${employeeData.status || (employeeData.active ? 'Ativo' : 'Inativo')}</p>
+        </div>
+    `;
+
+    document.body.appendChild(exportArea);
+    
+    const imgElement = document.getElementById('export-img-temp');
+    
+    // Função que executa o print apenas DEPOIS que a imagem carregar
+    const generatePrint = () => {
+        html2canvas(exportArea, { 
+            scale: 3, 
+            useCORS: true, // Permite carregar imagens externas
+            allowTaint: true,
+            width: 642, // 17cm
+            height: 453  // 12cm
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `RESUMO_SOL_${employeeData.name.replace(/\s+/g, '_')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            document.body.removeChild(exportArea);
+        });
+    };
+
+    // Aguarda o carregamento da imagem
+    if (imgElement.complete) {
+        generatePrint();
+    } else {
+        imgElement.onload = generatePrint;
+        imgElement.onerror = generatePrint; // Gera mesmo se a foto falhar
+    }
+}
+
+// Função recursiva para montar a árvore de cada VIP
+function buildTreeHTML(person, allPeople) {
+    // Encontra quem responde diretamente a esta pessoa
+    const children = allPeople.filter(p => p.managerId === person.id);
+    
+    // Destaca visualmente se for VIP
+    const nodeClass = person.isVip ? "org-node vip-node" : "org-node";
+    
+    let html = `<li>
+        <div class="${nodeClass}">
+            ${personCard(person)}
+        </div>`;
+        
+    if (children.length > 0) {
+        html += `<ul>${children.map(c => buildTreeHTML(c, allPeople)).join('')}</ul>`;
+    }
+    
+    html += `</li>`;
+    return html;
+}
+
+// Nova função de renderização do Organograma
+function renderOrg() {
+    const chart = $("#orgChart");
+    const people = filteredPeople("org");
+    if (!people.length) return setEmpty(chart);
+
+    // Identifica todos os IDs presentes na lista filtrada
+    const ids = new Set(people.map(p => p.id));
+    
+    // Raízes: pessoas sem chefe ou cujo chefe não está na lista
+    const allRoots = people.filter(p => !p.managerId || !ids.has(p.managerId));
+    
+    // Separa os VIPs (cada VIP terá sua própria árvore)
+    const vipRoots = allRoots.filter(p => p.isVip);
+    const normalRoots = allRoots.filter(p => !p.isVip);
+
+    let finalHTML = `<div class="org-tree-container">`;
+    
+    // 1. Renderiza uma árvore separada para cada VIP
+    vipRoots.forEach(vip => {
+        finalHTML += `
+        <div class="vip-org-section">
+            <h3 style="text-align:center; color:#062b51; margin-bottom:15px;">
+                👑 Organograma: ${escapeHtml(vip.name)}
+            </h3>
+            <div class="org-tree">
+                <ul>
+                    ${buildTreeHTML(vip, people)}
+                </ul>
+            </div>
+        </div>`;
+    });
+
+    // 2. Renderiza os demais funcionários que não estão sob nenhum VIP
+    if (normalRoots.length > 0) {
+        finalHTML += `
+        <div class="vip-org-section" style="margin-top: 30px;">
+            <h3 style="text-align:center; color:#666; margin-bottom:15px;">Outras Equipes</h3>
+            <div class="org-tree">
+                <ul>
+                    ${normalRoots.map(root => buildTreeHTML(root, people)).join('')}
+                </ul>
+            </div>
+        </div>`;
+    }
+
+    finalHTML += `</div>`;
+    chart.innerHTML = finalHTML;
+}
+
 async function api(path, options = {}) {
   // Converte /api/rota → api.php?path=rota (compatível com Hostinger sem mod_rewrite)
   const url = path.startsWith("/api/")
