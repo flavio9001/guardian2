@@ -12,7 +12,6 @@ Options -Indexes
 <FilesMatch "^(db_config\.php|db\.json|dev-server\.mjs|diagnostico\.php|diag_debug\.php)$">
   Require all denied
 </FilesMatch>
-
 # Bloquear acesso a arquivos de configuração e sensíveis
 <FilesMatch "\.(config|env|sql|bak|ini|log|sh|inc|php)$">
     <IfModule mod_authz_core.c>
