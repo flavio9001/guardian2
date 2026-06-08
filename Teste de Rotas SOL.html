@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teste de Rotas — SOL</title>
+<style>
+  body { font-family: monospace; background: #111; color: #eee; padding: 20px; }
+  h2 { color: #facc15 }
+  .ok   { color: #4ade80 }
+  .fail { color: #f87171 }
+  .info { color: #60a5fa }
+  pre { background: #222; padding: 10px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  button { background: #0a3764; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 1rem; cursor: pointer; margin-top: 10px }
+</style>
+</head>
+<body>
+<h2>🔍 SOL — Teste de Rotas da API</h2>
+<p class="info">Testando de dentro do browser, no mesmo domínio...</p>
+<div id="output"></div>
+<button onclick="runTests()">▶ Rodar testes novamente</button>
+
+<script>
+const out = document.getElementById('output');
+
+function log(html) {
+  out.innerHTML += html + '<br>';
+}
+
+async function testRoute(label, url, options = {}) {
+  log(`<br><b class="info">▶ ${label}</b>`);
+  log(`<span style="color:#aaa">   URL: ${url}</span>`);
+  try {
+    const res = await fetch(url, {
+      ...options,
+      headers: {
+        'content-type': 'application/json',
+        'x-user-id': '',
+        ...(options.headers || {})
+      }
+    });
+    const ct = res.headers.get('content-type') || '';
+    const body = await res.text();
+
+    if (res.ok && ct.includes('application/json')) {
+      log(`<span class="ok">   ✅ HTTP ${res.status} — JSON válido</span>`);
+      try {
+        const parsed = JSON.parse(body);
+        log(`<pre>${JSON.stringify(parsed, null, 2).slice(0, 400)}</pre>`);
+      } catch(e) {
+        log(`<pre>${body.slice(0, 300)}</pre>`);
+      }
+    } else if (res.ok) {
+      log(`<span class="fail">   ⚠️ HTTP ${res.status} — Não é JSON. Content-Type: ${ct}</span>`);
+      log(`<pre>${body.slice(0, 300)}</pre>`);
+    } else {
+      log(`<span class="fail">   ❌ HTTP ${res.status}</span>`);
+      log(`<pre>${body.slice(0, 300)}</pre>`);
+    }
+  } catch(e) {
+    log(`<span class="fail">   ❌ Erro de rede: ${e.message}</span>`);
+  }
+}
+
+async function checkAppJs() {
+  log(`<br><b class="info">▶ Verificar app.js no servidor (tem a correção?)</b>`);
+  try {
+    const res = await fetch('/app.js?_=' + Date.now());
+    const text = await res.text();
+    if (text.includes('api.php?path=')) {
+      log(`<span class="ok">   ✅ app.js CORRETO — contém a conversão api.php?path=</span>`);
+    } else if (text.includes('fetch(`${API}${path}`')) {
+      log(`<span class="fail">   ❌ app.js ANTIGO — ainda usa a rota /api/ direta (não corrigido no servidor)</span>`);
+    } else {
+      log(`<span class="fail">   ⚠️ app.js encontrado mas não foi possível verificar a versão</span>`);
+    }
+    log(`<pre>${text.slice(23, 500)}</pre>`);
+  } catch(e) {
+    log(`<span class="fail">   ❌ Erro ao buscar app.js: ${e.message}</span>`);
+  }
+}
+
+async function runTests() {
+  out.innerHTML = '';
+  log('<span class="info">Iniciando testes às ' + new Date().toLocaleTimeString() + '...</span>');
+
+  await checkAppJs();
+
+  await testRoute(
+    'Rota CORRIGIDA: api.php?path=people-public',
+    '/api.php?path=people-public'
+  );
+
+  await testRoute(
+    'Rota ANTIGA (via .htaccess): /api/people-public',
+    '/api/people-public'
+  );
+
+  await testRoute(
+    'Login via rota corrigida',
+    '/api.php?path=login',
+    {
+      method: 'POST',
+      body: JSON.stringify({ personId: 'person-ceo', username: 'fatima.yvone', password: 'Sol@1234' })
+    }
+  );
+
+  log('<br><b class="info">✔ Testes concluídos</b>');
+}
+
+runTests();
+</script>
+</body>
+</html>
