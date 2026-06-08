@@ -1,15 +1,17 @@
 {
   "name": "SOL Equipes",
-  "short_name": "SOL",
-  "description": "Cadastro, organograma, chat e escala de funcionários.",
-  "start_url": ".",
+  "short_name": "SOL Equipes",
+  "description": "Sistema de Gestão de Equipes — Segurança, Operação, Logística",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#f7faf8",
+  "orientation": "portrait",
+  "background_color": "#062b51",
   "theme_color": "#062b51",
+  "lang": "pt-BR",
   "icons": [
     {
       "src": "sol-favicon.png",
-      "sizes": "512x512",
+      "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"
     }
