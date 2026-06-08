@@ -11,30 +11,247 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- ... (login e sidebar permanecem iguais) ... -->
+    <section class="login-screen" id="loginScreen">
+      <form class="login-card" id="loginForm">
+        <img class="login-logo" src="sol-logo.png" alt="SOL Segurança Operação Logística" />
+        <h1>Acesso ao sistema</h1>
+        <label>
+          Funcionário
+          <select id="loginPerson" required></select>
+        </label>
+        <label>
+          Usuário
+          <input id="loginUser" autocomplete="username" required />
+        </label>
+        <label>
+          Senha
+          <input id="loginPassword" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="primary" type="submit">Entrar</button>
+        <p class="login-hint">Senha inicial padrão: <strong>Sol@1234</strong>. Após entrar, altere em Configurações da conta.</p>
+      </form>
+    </section>
 
     <div class="app-shell is-hidden" id="appShell">
-      <!-- ... sidebar e topbar ... -->
+      <aside class="sidebar" aria-label="Navegação principal">
+        <div class="brand">
+          <img class="brand-logo" src="sol-logo.png" alt="SOL" />
+          <div>
+            <strong>SOL Equipes</strong>
+            <span>Segurança, operação e logística</span>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" data-view="dashboard" type="button"><span class="nav-icon">⌂</span>Visão geral</button>
+          <button class="nav-item" data-view="org" type="button"><span class="nav-icon">⌁</span>Organograma</button>
+          <button class="nav-item" data-view="people" type="button"><span class="nav-icon">◎</span>Funcionários</button>
+          <button class="nav-item" data-view="admin" type="button"><span class="nav-icon">✎</span>Cadastro</button>
+          <button class="nav-item" data-view="schedule" type="button"><span class="nav-icon">▦</span>Escala</button>
+          <button class="nav-item" data-view="chat" type="button"><span class="nav-icon">◌</span>Chat</button>
+          <button class="nav-item gestor-only" data-view="settings" type="button"><span class="nav-icon">⚙</span>Configurações</button>
+        </nav>
+
+        <div class="storage-panel">
+          <span>Servidor local</span>
+          <strong id="storageStatus">Conectando</strong>
+          <button class="ghost small" id="logoutButton" type="button">Sair</button>
+        </div>
+      </aside>
 
       <main class="main-content">
-        <!-- ... outras seções ... -->
-
-        <section class="view" id="org">
-          <div class="toolbar">
-            <label>Buscar<input id="orgSearch" type="search" placeholder="Nome, cargo ou telefone" /></label>
-            <button class="primary" id="exportOrgChart" type="button">Exportar Organograma</button>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Central de identificação</p>
+            <h1 id="viewTitle">Visão geral</h1>
           </div>
-          
-          <div class="org-container" id="orgContainer">
-            <!-- Organogramas serão inseridos aqui via JavaScript -->
+          <div class="top-actions">
+            <span class="user-pill" id="currentUserLabel"></span>
+            <button class="primary gestor-only" data-jump="admin" type="button">Novo cadastro</button>
+          </div>
+        </header>
+
+        <section class="view active" id="dashboard">
+          <div class="metrics" id="metrics"></div>
+          <div class="split-layout">
+            <section class="panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Hierarquias ativas</p>
+                  <h2>Grupos ligados ao VIP</h2>
+                </div>
+                <button class="ghost small" data-jump="org" type="button">Abrir</button>
+              </div>
+              <div class="group-board" id="groupBoard"></div>
+            </section>
+            <section class="panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Acesso rápido</p>
+                  <h2>Funcionários recentes</h2>
+                </div>
+              </div>
+              <div class="compact-list" id="recentPeople"></div>
+            </section>
           </div>
         </section>
 
-        <!-- ... resto das seções ... -->
+        <section class="view" id="org">
+          <div class="toolbar">
+            <label>Grupo<select id="orgGroupFilter"></select></label>
+            <label>Busca<input id="orgSearch" type="search" placeholder="Nome, cargo ou telefone" /></label>
+          </div>
+          <div class="org-stage"><div class="org-chart" id="orgChart"></div></div>
+        </section>
+
+        <section class="view" id="people">
+          <div class="toolbar">
+            <label>Ordenar<select id="peopleSort"><option value="name">Ordem alfabética</option><option value="group">Grupo de trabalho</option></select></label>
+            <label>Grupo<select id="peopleGroupFilter"></select></label>
+            <label>Busca<input id="peopleSearch" type="search" placeholder="Pesquisar funcionário" /></label>
+          </div>
+          <div class="people-list" id="peopleList"></div>
+        </section>
+
+        <section class="view" id="admin">
+          <div class="admin-grid">
+            <form class="panel form-panel" id="personForm">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Cadastro de entidade</p>
+                  <h2 id="formTitle">Novo funcionário</h2>
+                </div>
+                <button class="ghost small" id="clearForm" type="button">Limpar</button>
+              </div>
+
+              <input id="personId" type="hidden" />
+              <div class="photo-row">
+                <img id="photoPreview" alt="Foto cadastrada" src="" />
+                <label class="file-control">Foto<input id="photoInput" type="file" accept="image/*" /></label>
+                <button class="ghost" id="exportSummaryJpg" type="button">Exportar resumo JPG</button>
+              </div>
+
+              <div class="form-grid">
+                <label>Nome completo<input id="nameInput" required /></label>
+                <label>Cargo/Função<input id="roleInput" required /></label>
+                <label>Grupo de trabalho<select id="groupInput"></select></label>
+                <label>Subordinado a<select id="managerInput"></select></label>
+                <label>Telefones<input id="phonesInput" placeholder="11999999999, 1133334444" /></label>
+                <label>WhatsApp principal<input id="whatsappInput" placeholder="11999999999" /></label>
+                <label>E-mail<input id="emailInput" type="email" /></label>
+                <label>Período de escala<input id="periodInput" placeholder="08:00-17:00" /></label>
+                <label>Usuário<input id="usernameInput" autocomplete="off" /></label>
+                <label>Senha<input id="passwordInput" type="password" placeholder="Deixe em branco para manter" /></label>
+                <label>Tipo de usuário<select id="userTypeInput"><option value="colaborador">Colaborador</option><option value="gestor">Gestor</option></select></label>
+              </div>
+
+              <label>Endereço<textarea id="addressInput" rows="2"></textarea></label>
+              <label>Disponibilidade<textarea id="availabilityInput" rows="2" placeholder="Segunda, Terça, Quarta"></textarea></label>
+              <label>Resumo<textarea id="summaryInput" rows="3" placeholder="Responsabilidades, observações e área de atuação"></textarea></label>
+
+              <div class="check-row">
+                <label><input id="vipInput" type="checkbox" /> É VIP/CEO/Diretor do fluxo</label>
+                <label><input id="activeInput" type="checkbox" checked /> Ativo</label>
+              </div>
+
+              <div class="form-actions">
+                <button class="danger ghost" id="deletePerson" type="button">Excluir</button>
+                <button class="primary" type="submit">Salvar funcionário</button>
+              </div>
+            </form>
+
+            <section class="panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Grupos e hierarquias</p>
+                  <h2>Configuração</h2>
+                </div>
+              </div>
+              <form id="groupForm" class="mini-form">
+                <input id="groupNameInput" placeholder="Nome do grupo" required />
+                <select id="groupVipInput"></select>
+                <button class="primary" type="submit">Criar grupo</button>
+              </form>
+              <div class="group-list" id="adminGroupList"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="schedule">
+          <div class="toolbar">
+            <label>Grupo<select id="scheduleGroup"></select></label>
+            <label>Mês<input id="scheduleMonth" type="month" /></label>
+            <button class="primary" id="generateSchedule" type="button">Gerar escala</button>
+            <button class="ghost" id="saveSchedule" type="button">Salvar ajustes</button>
+          </div>
+          <div class="schedule-calendar" id="scheduleGrid"></div>
+        </section>
+
+        <section class="view" id="chat">
+          <div class="chat-layout">
+            <aside class="panel chat-groups">
+              <div id="chatRooms"></div>
+            </aside>
+            <section class="panel chat-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Mensagens dos últimos 30 dias</p>
+                  <h2 id="chatTitle">Chat</h2>
+                </div>
+              </div>
+              <div class="chat-messages" id="chatMessages"></div>
+              <form class="chat-form" id="chatForm">
+                <input id="chatInput" placeholder="Escreva uma mensagem" required />
+                <button class="primary" type="submit">Enviar</button>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="settings">
+          <div class="admin-grid">
+            <section class="panel form-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Banco de dados</p>
+                  <h2>Configurações do gestor</h2>
+                </div>
+              </div>
+              <div class="settings-actions">
+                <button class="primary" id="exportData" type="button">Exportar banco JSON</button>
+                <label class="ghost import-label">Importar banco JSON<input id="importData" type="file" accept="application/json" /></label>
+              </div>
+            </section>
+            <section class="panel form-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Minha conta</p>
+                  <h2>Alterar senha</h2>
+                </div>
+              </div>
+              <form id="passwordForm" class="mini-form account-form">
+                <input id="newPasswordInput" type="password" placeholder="Nova senha" required />
+                <button class="primary" type="submit">Alterar senha</button>
+              </form>
+            </section>
+          </div>
+        </section>
       </main>
     </div>
 
-    <!-- ... toast, dialog, template ... -->
+    <div class="toast" id="toast" role="status"></div>
+
+    <dialog class="person-dialog" id="personDialog">
+      <button class="dialog-close" id="closeDialog" type="button" aria-label="Fechar">×</button>
+      <div id="personDetails"></div>
+    </dialog>
+
+    <template id="emptyTemplate">
+      <div class="empty-state">
+        <strong>Nenhum registro encontrado</strong>
+        <span>Cadastre funcionários, grupos e vínculos para preencher esta área.</span>
+      </div>
+    </template>
 
     <script src="app.js"></script>
   </body>
