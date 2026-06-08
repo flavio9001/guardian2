@@ -1,1 +1,149 @@
-#currentUserLabel { background-color: #28a745; color: #ffffff; padding: 5px 15px; border-radius: 50px; display: inline-block; } .user-pill { cursor: pointer; transition: background-color 0.3s ease; } .user-pill:hover { background-color: #218838; } .summary-export-landscape { width: 170mm; height: 120mm; background-color: #ffffff; border: 2px solid #28a745; display: flex; flex-direction: row; padding: 10px; box-sizing: border-box; } .summary-export-landscape .photo-side { flex: 0 0 40%; } .summary-export-landscape .data-side { flex: 1; padding-left: 15px; }
+/* ==================== ORGANOGRAMA - ESTILO MODERNO ==================== */
+.org-container {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  padding: 1rem;
+}
+
+.org-board {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.org-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.org-header h2 {
+  margin: 0;
+  color: #062b51;
+  font-size: 1.5rem;
+}
+
+.vip-badge {
+  background: linear-gradient(135deg, #0a3764, #1e40af);
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(10, 55, 100, 0.3);
+}
+
+.org-tree {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.org-node.root {
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+.org-node {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  width: 220px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+  margin: 0.8rem;
+}
+
+.org-node:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(6, 43, 81, 0.15);
+  border-color: #0a3764;
+}
+
+.org-node.root {
+  border-color: #0a3764;
+  background: linear-gradient(135deg, #f8fafc, #e0f2fe);
+  width: 260px;
+  padding: 1.4rem;
+}
+
+.avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin: 0 auto 0.8rem;
+  object-fit: cover;
+  border: 4px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(135deg, #0a3764, #1e40af);
+}
+
+.node-info strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #062b51;
+  margin-bottom: 4px;
+}
+
+.node-info span {
+  display: block;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.node-info small {
+  color: #0ea5e9;
+  margin-top: 6px;
+  display: block;
+}
+
+/* Linhas de conexão */
+.org-children {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 2rem;
+}
+
+.org-children::before {
+  content: '';
+  position: absolute;
+  top: -1.2rem;
+  left: 50%;
+  width: 3px;
+  height: 2rem;
+  background: #94a3b8;
+  transform: translateX(-50%);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .org-node, .org-node.root {
+    width: 180px;
+  }
+  .org-container {
+    gap: 2rem;
+  }
+}
