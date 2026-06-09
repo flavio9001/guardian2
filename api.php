@@ -1,4 +1,6 @@
 <?php
+// api.php (alteração importante)
+require_once __DIR__ . '/../config/db_config.php';
 declare(strict_types=1);
 
 header('Access-Control-Allow-Origin: *');
