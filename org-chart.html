@@ -1,0 +1,35 @@
+<section class="org-chart-container" aria-labelledby="org-chart-title">
+  <header class="org-chart-header">
+    <h2 id="org-chart-title">Organograma por VIP</h2>
+    <div class="org-filter-group">
+      <label for="vip-selector" class="sr-only">Selecionar VIP</label>
+      <select id="vip-selector" class="form-select" aria-label="Selecione um VIP para visualizar o organograma">
+        <option value="all">Todos os VIPs</option>
+        <option value="vip-1">VIP Executivo 1</option>
+        <option value="vip-2">VIP Executivo 2</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="org-grid" id="org-grid">
+    <!-- Exemplo de Card de VIP -->
+    <article class="vip-card" role="region" aria-labelledby="vip-name-1">
+      <div class="vip-card-header">
+        <h3 id="vip-name-1">Nome do VIP</h3>
+        <div class="vip-actions">
+          <button class="btn-icon" aria-label="Expandir organograma" title="Expandir">
+            <i class="icon-expand" aria-hidden="true"></i>
+          </button>
+          <button class="btn-icon" aria-label="Editar dados do VIP" title="Editar">
+            <i class="icon-edit" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="org-chart-content" id="chart-vip-1">
+        <!-- Placeholder para renderização dinâmica via JS -->
+        <div class="chart-placeholder">Carregando estrutura...</div>
+      </div>
+    </article>
+  </div>
+</section>

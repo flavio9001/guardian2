@@ -1,1 +1,44 @@
-const exportService = {  isAndroidWebView: () => {    return typeof window.AndroidInterface !== 'undefined';  },  showFeedback: (message) => {    alert(message);  },  exportarResumoJPG: async (elementId) => {    try {      const html2canvas = (await import('html2canvas')).default;      const element = document.getElementById(elementId);      if (!element) throw new Error('Elemento não encontrado');      const canvas = await html2canvas(element, { scale: 2, useCORS: true });      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);      if (exportService.isAndroidWebView()) {        window.AndroidInterface.saveImage(dataUrl, 'resumo.jpg');        exportService.showFeedback('Salvando no dispositivo...');      } else {        const link = document.createElement('a');        link.download = 'resumo.jpg';        link.href = dataUrl;        link.click();      }    } catch (error) {      console.error(error);      exportService.showFeedback('Erro ao exportar imagem.');    }  },  abrirWhatsApp: (text, imageUrl = null) => {    try {      const encodedText = encodeURIComponent(text);      if (exportService.isAndroidWebView()) {        window.AndroidInterface.shareWhatsApp(encodedText, imageUrl || '');      } else {        const url = `https://wa.me/?text=${encodedText}`;        window.open(url, '_blank');      }    } catch (error) {      console.error(error);      exportService.showFeedback('Erro ao abrir WhatsApp.');    }  }};export default exportService;
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+
+export const exportEmployeeSummary = async (elementId, employeeName) => {
+  const element = document.getElementById(elementId);
+  if (!element) return;
+
+  const canvas = await html2canvas(element, {
+    scale: 2,
+    useCORS: true
+  });
+
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new jsPDF('p', 'mm', [60, 100]);
+  pdf.addImage(imgData, 'PNG', 0, 0, 60, 100);
+  pdf.save(`resumo_${employeeName}.pdf`);
+};
+
+// CSS for the summary card component
+/*
+.employee-summary-card {
+  width: 60mm;
+  height: 100mm;
+  padding: 5mm;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Arial', sans-serif;
+}
+.employee-photo {
+  width: 40mm;
+  height: 40mm;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 5mm;
+}
+.employee-info {
+  width: 100%;
+  font-size: 10pt;
+  color: #333;
+}
+*/
