@@ -578,11 +578,121 @@ function latestMessageStamp() {
 }
 
 function notifyNewMessage() {
-  const toast = $("#toast");
-  toast.textContent = "Nova mensagem recebida";
-  toast.classList.add("show");
+  // Toca o som
   playMessageSound();
-  setTimeout(() => toast.classList.remove("show"), 3200);
+
+  // Descobre a última mensagem nova
+  let latestMsg = null;
+  let latestRoom = null;
+  let latestAt = 0;
+  for (const [roomId, msgs] of Object.entries(state.chats || {})) {
+    for (const m of (msgs || [])) {
+      if ((m.at || 0) > latestAt && m.authorId !== currentUser?.id) {
+        latestAt = m.at || 0;
+        latestMsg = m;
+        latestRoom = roomId;
+      }
+    }
+  }
+
+  const roomName = state.chatRooms?.find(r => r.id === latestRoom)?.name || "Chat";
+  const authorName = latestMsg?.authorName || "Alguém";
+  const msgText = latestMsg?.text || "Nova mensagem";
+
+  // Remove pop-up anterior se existir
+  const old = document.getElementById("chatPopup");
+  if (old) old.remove();
+
+  // Cria o pop-up
+  const popup = document.createElement("div");
+  popup.id = "chatPopup";
+  popup.innerHTML = `
+    <div id="chatPopupInner">
+      <div id="chatPopupIcon">💬</div>
+      <div id="chatPopupBody">
+        <div id="chatPopupRoom">${escapeHtml(roomName)}</div>
+        <div id="chatPopupAuthor">${escapeHtml(authorName)}</div>
+        <div id="chatPopupText">${escapeHtml(msgText.slice(0, 80))}${msgText.length > 80 ? "…" : ""}</div>
+      </div>
+      <button id="chatPopupClose" type="button" aria-label="Fechar">✕</button>
+    </div>
+  `;
+
+  // Estilos inline (não dependem do CSS externo)
+  Object.assign(popup.style, {
+    position: "fixed", top: "16px", left: "50%", transform: "translateX(-50%)",
+    zIndex: "99999", width: "min(96vw, 420px)", cursor: "pointer",
+    animation: "chatPopupIn .28s cubic-bezier(.22,1,.36,1) both"
+  });
+  const inner = popup.querySelector("#chatPopupInner");
+  Object.assign(inner.style, {
+    display: "flex", alignItems: "center", gap: "12px",
+    background: "#1a2b3c", color: "#fff",
+    borderRadius: "16px", padding: "14px 16px",
+    boxShadow: "0 8px 32px rgba(0,0,0,.45)",
+    borderLeft: "5px solid #25d366"
+  });
+  Object.assign(popup.querySelector("#chatPopupIcon").style, {
+    fontSize: "28px", lineHeight: "1", flexShrink: "0"
+  });
+  Object.assign(popup.querySelector("#chatPopupBody").style, {
+    flex: "1", minWidth: "0"
+  });
+  Object.assign(popup.querySelector("#chatPopupRoom").style, {
+    fontSize: "11px", fontWeight: "700", color: "#25d366",
+    textTransform: "uppercase", letterSpacing: ".6px", marginBottom: "2px"
+  });
+  Object.assign(popup.querySelector("#chatPopupAuthor").style, {
+    fontSize: "14px", fontWeight: "700", color: "#fff", marginBottom: "2px"
+  });
+  Object.assign(popup.querySelector("#chatPopupText").style, {
+    fontSize: "13px", color: "#c8d8e8",
+    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+  });
+  const closeBtn = popup.querySelector("#chatPopupClose");
+  Object.assign(closeBtn.style, {
+    background: "none", border: "none", color: "#8aa", fontSize: "16px",
+    cursor: "pointer", padding: "4px 6px", flexShrink: "0", lineHeight: "1"
+  });
+
+  // Injectar animação CSS se ainda não existir
+  if (!document.getElementById("chatPopupStyle")) {
+    const style = document.createElement("style");
+    style.id = "chatPopupStyle";
+    style.textContent = `
+      @keyframes chatPopupIn {
+        from { opacity:0; transform:translateX(-50%) translateY(-18px) scale(.94); }
+        to   { opacity:1; transform:translateX(-50%) translateY(0)     scale(1);   }
+      }
+      @keyframes chatPopupOut {
+        to   { opacity:0; transform:translateX(-50%) translateY(-14px) scale(.94); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const dismiss = () => {
+    popup.style.animation = "chatPopupOut .22s ease forwards";
+    setTimeout(() => popup.remove(), 230);
+  };
+
+  // Clique no pop-up → vai ao chat e seleciona a sala
+  popup.addEventListener("click", (e) => {
+    if (e.target === closeBtn || closeBtn.contains(e.target)) { dismiss(); return; }
+    if (latestRoom) {
+      selectedChatRoom = latestRoom;
+      navTo("chat");
+      renderChat();
+    }
+    dismiss();
+  });
+
+  closeBtn.addEventListener("click", (e) => { e.stopPropagation(); dismiss(); });
+
+  document.body.appendChild(popup);
+
+  // Auto-dismiss após 6s
+  setTimeout(dismiss, 6000);
 }
 
 function playMessageSound() {
@@ -649,42 +759,162 @@ function exportSummaryJpg(id = $("#personId").value) {
   const person = personById(id);
   if (!person) return alert("Selecione ou abra um funcionário para exportar o resumo.");
   const group = groupById(person.groupId);
+
+  // Dimensões cédula RG Brasil: 85.6 × 54 mm a 300 dpi → 1012 × 638 px
+  const W = 1012, H = 638;
   const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 780;
+  canvas.width = W;
+  canvas.height = H;
   const ctx = canvas.getContext("2d");
+
+  // Fundo branco
   ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, W, H);
+
+  // Faixa superior azul
+  const HEADER_H = 90;
   ctx.fillStyle = "#062b51";
-  ctx.fillRect(0, 0, canvas.width, 138);
+  ctx.fillRect(0, 0, W, HEADER_H);
+
+  // Logo SOL + subtítulo no cabeçalho
   ctx.fillStyle = "#f4b400";
-  ctx.font = "bold 42px Arial";
-  ctx.fillText("SOL Equipes", 58, 86);
-  ctx.fillStyle = "#062b51";
-  ctx.font = "bold 54px Arial";
-  ctx.fillText(person.name, 58, 220);
-  ctx.font = "30px Arial";
-  ctx.fillText(person.role, 58, 268);
+  ctx.font = "bold 30px Arial";
+  ctx.fillText("SOL Equipes", 22, 38);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "15px Arial";
+  ctx.fillText("Segurança · Operação · Logística", 22, 62);
+
+  // Linha dourada decorativa sob o cabeçalho
   ctx.fillStyle = "#f4b400";
-  ctx.fillRect(58, 305, 220, 10);
-  ctx.fillStyle = "#1d2a33";
-  ctx.font = "26px Arial";
-  const lines = [
-    `Grupo: ${group?.name || "Sem grupo"}`,
-    `Telefones: ${(person.phones || []).join(", ") || "Não informado"}`,
-    `WhatsApp: ${person.whatsapp || "Não informado"}`,
-    `E-mail: ${person.email || "Não informado"}`,
-    `Endereço: ${person.address || "Não informado"}`,
-    `Disponibilidade: ${(person.availability || []).map((day) => weekdayLabels[day] || day).join(", ")}`,
-    `Período: ${person.period || "Não informado"}`
-  ];
-  lines.forEach((line, index) => ctx.fillText(line, 58, 370 + index * 45));
-  ctx.font = "24px Arial";
-  wrapText(ctx, person.summary || "Sem resumo cadastrado", 58, 700, 1060, 32);
-  const link = document.createElement("a");
-  link.href = canvas.toDataURL("image/jpeg", 0.92);
-  link.download = `resumo-${slugUser(person.name)}.jpg`;
-  link.click();
+  ctx.fillRect(0, HEADER_H, W, 4);
+
+  // ── Área da foto (esquerda) ──────────────────────────────
+  const PHOTO_X = 22, PHOTO_Y = HEADER_H + 18;
+  const PHOTO_W = 160, PHOTO_H = 200;
+
+  const drawPhotoFrame = () => {
+    // Borda azul
+    ctx.strokeStyle = "#062b51";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H);
+    // Fundo cinza claro caso sem foto
+    ctx.fillStyle = "#e8edf2";
+    ctx.fillRect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4);
+    ctx.fillStyle = "#8a9baa";
+    ctx.font = "13px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Sem foto", PHOTO_X + PHOTO_W / 2, PHOTO_Y + PHOTO_H / 2 + 5);
+    ctx.textAlign = "left";
+  };
+
+  const renderCard = () => {
+    // ── Dados textuais (direita da foto) ─────────────────
+    const TX = PHOTO_X + PHOTO_W + 22;
+    const TW = W - TX - 20;
+
+    // Nome
+    ctx.fillStyle = "#062b51";
+    ctx.font = "bold 26px Arial";
+    const nameY = PHOTO_Y + 26;
+    wrapTextReturn(ctx, person.name, TX, nameY, TW, 30);
+
+    // Cargo
+    ctx.fillStyle = "#f4b400";
+    ctx.font = "bold 17px Arial";
+    ctx.fillText(person.role || "", TX, nameY + 58);
+
+    // Linha separadora fina
+    ctx.fillStyle = "#e0e0e0";
+    ctx.fillRect(TX, nameY + 68, TW, 1);
+
+    // Dados em grade
+    ctx.fillStyle = "#333333";
+    ctx.font = "15px Arial";
+    const info = [
+      ["Grupo",    group?.name || "Sem grupo"],
+      ["Tel",      (person.phones || []).join(", ") || "—"],
+      ["WhatsApp", person.whatsapp || "—"],
+      ["E-mail",   person.email || "—"],
+      ["Período",  person.period || "—"],
+      ["Disponib.",`${(person.availability || []).map(d => weekdayLabels[d] || d).join(", ") || "—"}`]
+    ];
+    info.forEach(([label, value], i) => {
+      const y = nameY + 90 + i * 26;
+      ctx.fillStyle = "#888888";
+      ctx.font = "bold 13px Arial";
+      ctx.fillText(label.toUpperCase(), TX, y);
+      ctx.fillStyle = "#222222";
+      ctx.font = "15px Arial";
+      const labelW = ctx.measureText(label.toUpperCase() + "  ").width + 8;
+      // Trunca valor se muito largo
+      let val = value;
+      while (val.length > 2 && ctx.measureText(val).width > TW - labelW) val = val.slice(0, -1);
+      if (val !== value) val += "…";
+      ctx.fillText(val, TX + labelW, y);
+    });
+
+    // ── Faixa inferior com resumo ─────────────────────────
+    const FOOTER_Y = PHOTO_Y + PHOTO_H + 20;
+    ctx.fillStyle = "#f5f7fa";
+    ctx.fillRect(0, FOOTER_Y, W, H - FOOTER_Y);
+    ctx.fillStyle = "#062b51";
+    ctx.fillRect(0, FOOTER_Y, W, 3);
+
+    ctx.fillStyle = "#555555";
+    ctx.font = "italic 14px Arial";
+    wrapTextReturn(ctx, person.summary || "Sem resumo cadastrado.", 22, FOOTER_Y + 22, W - 44, 20);
+
+    // ── Rodapé com data ───────────────────────────────────
+    ctx.fillStyle = "#062b51";
+    ctx.fillRect(0, H - 28, W, 28);
+    ctx.fillStyle = "#aaaaaa";
+    ctx.font = "12px Arial";
+    ctx.textAlign = "right";
+    ctx.fillText(`Gerado em ${new Date().toLocaleDateString("pt-BR")}`, W - 16, H - 10);
+    ctx.textAlign = "left";
+
+    // ── Download ──────────────────────────────────────────
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/jpeg", 0.95);
+    link.download = `cracha-${slugUser(person.name)}.jpg`;
+    link.click();
+  };
+
+  // Tenta carregar a foto
+  if (person.photo) {
+    const img = new Image();
+    img.onload = () => {
+      // Clip circular não: recorte retangular preenchendo o frame
+      ctx.drawImage(img, PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4);
+      ctx.strokeStyle = "#062b51";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H);
+      renderCard();
+    };
+    img.onerror = () => { drawPhotoFrame(); renderCard(); };
+    img.src = person.photo;
+  } else {
+    drawPhotoFrame();
+    renderCard();
+  }
+}
+
+// wrapText com retorno de Y final (não quebra a assinatura antiga)
+function wrapTextReturn(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = (text || "").split(" ");
+  let line = "";
+  for (const word of words) {
+    const test = line + word + " ";
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line.trim(), x, y);
+      line = word + " ";
+      y += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  if (line.trim()) ctx.fillText(line.trim(), x, y);
+  return y;
 }
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {

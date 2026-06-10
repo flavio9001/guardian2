@@ -1,0 +1,11 @@
+# Sensíveis
+.env
+db_config.php
+config/db_config.php
+database.sql
+*.log
+data-*.json
+guardian.db
+
+# Composer
+vendor/
